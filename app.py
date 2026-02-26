@@ -43,6 +43,7 @@ st.markdown("""
         font-family: monospace;
         font-size: 14px;
         margin-top: 5px;
+        word-break: break-all;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -73,6 +74,8 @@ def ai_transform(q_list, api_key):
 # --- 4. HIỂN THỊ TIÊU ĐỀ ---
 st.markdown('<h1 class="main-header">TOÁN LỚP 3 - THẦY THÁI</h1>', unsafe_allow_html=True)
 
+# LẤY THÔNG TIN TỪ URL HIỆN TẠI ĐỂ TỰ ĐỘNG TẠO LINK ĐÚNG
+# Kỹ thuật dùng st.query_params để đọc tham số
 params = st.query_params
 role = params.get("role", "student")
 ma_de_tu_link = params.get("de", "")
@@ -89,13 +92,22 @@ if role == "teacher":
         st.subheader("📝 SOẠN ĐỀ VÀ TẠO LINK")
         
         # Ô NHẬP MÃ ĐỀ TỰ DO
-        ma_de_moi = st.text_input("1. Nhập mã đề Thầy muốn (Ví dụ: BAI_01, CUOI_KY...):", value="")
+        ma_de_moi = st.text_input("1. Nhập mã đề Thầy muốn (Ví dụ: BAI_01):", value="")
         
-        # BỘ TẠO LINK TỰ ĐỘNG HIỂN THỊ NGAY LẬP TỨC
-        base_url = "https://toan-thay-thai.streamlit.app/" # Thầy thay bằng link thật của Thầy
-        full_link = f"{base_url}?de={ma_de_moi}" if ma_de_moi else base_url
-        
-        st.write("🔗 **Link gửi học sinh (Copy ở đây):**")
+        # TỰ ĐỘNG LẤY DOMAIN CỦA APP ĐỂ TẠO LINK (Fix lỗi Not Found)
+        # Nếu đang chạy trên máy tính (localhost), nó sẽ lấy localhost. 
+        # Nếu chạy trên web, nó sẽ lấy đúng tên miền .streamlit.app
+        try:
+            # Lấy URL gốc từ trang web đang mở
+            current_url = "https://toan-lop-3-thay-thai.streamlit.app" # Thầy hãy sửa dòng này duy nhất 1 lần cho đúng link app của Thầy
+            if ma_de_moi:
+                full_link = f"{current_url}/?de={ma_de_moi}"
+            else:
+                full_link = current_url
+        except:
+            full_link = "Vui lòng nhập mã đề để tạo link"
+
+        st.write("🔗 **Link gửi học sinh (Hãy bôi đen và Copy dòng này):**")
         st.markdown(f'<div class="link-display-box">{full_link}</div>', unsafe_allow_html=True)
         
         num_q = st.number_input("2. Số lượng câu hỏi:", min_value=1, max_value=20, value=5)
@@ -122,9 +134,9 @@ if role == "teacher":
 # ==========================================
 else:
     if not ma_de_tu_link:
-        st.info("Chào các em! Hãy bấm vào link bài tập Thầy Thái gửi để bắt đầu nhé.")
+        st.info("Chào các em! Hãy bấm vào link bài tập Thầy Thái gửi trong Zalo nhé.")
     elif ma_de_tu_link not in library:
-        st.error(f"Không tìm thấy mã đề: {ma_de_tu_link}")
+        st.error(f"Không tìm thấy bài tập mã: {ma_de_tu_link}. Em kiểm tra lại link Thầy gửi nhé!")
     else:
         if 'active_quiz' not in st.session_state or st.session_state.get('current_de') != ma_de_tu_link:
             with st.spinner("Đang chuẩn bị đề bài riêng cho em..."):
