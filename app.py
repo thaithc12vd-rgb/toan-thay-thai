@@ -4,55 +4,57 @@ import json
 import os
 import time
 
-# --- 1. CẤU HÌNH GIAO DIỆN & PHONG THỦY TUYỆT ĐỐI ---
+# --- 1. CẤU HÌNH GIAO DIỆN & KHÓA HỆ THỐNG TUYỆT ĐỐI ---
 st.set_page_config(page_title="Toán Lớp 3 - Thầy Thái", layout="wide", page_icon="🎓")
 
 st.markdown("""
 <style>
-    /* ẨN CHỮ MANAGE APP VÀ MENU HỆ THỐNG */
+    /* ẨN HOÀN TOÀN NÚT MANAGE APP VÀ CÁC THÀNH PHẦN HỆ THỐNG */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+    .stDeployButton {display:none !important;}
     div[data-testid="stStatusWidget"] {visibility: hidden;}
-    .reportview-container .main footer {visibility: hidden;}
-
-    /* NỀN XÁM XANH MỆNH THỦY */
+    button[title="View source code"] {display:none !important;}
+    
+    /* NỀN XÁM XANH PHONG THỦY */
     .stApp { background-color: #C5D3E8; } 
 
     /* TIÊU ĐỀ CHÍNH - XANH ĐẠI DƯƠNG */
     .main-header { 
         color: #004F98 !important; 
         text-align: center; 
-        font-size: 50px !important; 
+        font-size: clamp(30px, 5vw, 50px) !important; 
         font-weight: 900 !important;
-        margin-top: -30px;
-        margin-bottom: 10px;
+        margin-top: -60px;
+        margin-bottom: 20px;
+        text-transform: uppercase;
     }
 
-    /* CHỮ DESIGN - CANH GIỮA & PHONG THỦY (HIỆN CHO TẤT CẢ) */
+    /* CHỮ DESIGN - CANH GIỮA */
     .footer-design {
         position: fixed;
         left: 0;
         bottom: 0;
         width: 100%;
-        background-color: rgba(197, 211, 232, 0.9); /* Tiệp màu nền */
+        background-color: #C5D3E8;
         color: #004F98 !important;
         text-align: center;
         font-weight: bold;
-        padding: 10px;
+        padding: 15px 0;
         font-size: 16px;
         letter-spacing: 2px;
         z-index: 999;
     }
 
-    /* KHUNG LÀM BÀI TRẮNG SẠCH SẼ */
+    /* KHUNG NỘI DUNG */
     div[data-testid="stForm"] {
         background-color: white;
         border-radius: 20px;
         padding: 30px;
         border-top: 10px solid #004F98;
-        box-shadow: 0px 10px 30px rgba(0,0,0,0.1);
-        margin-bottom: 60px; /* Tránh đè lên footer */
+        box-shadow: 0px 15px 35px rgba(0, 79, 152, 0.1);
+        margin-bottom: 80px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -69,12 +71,13 @@ def save_db(k, d):
 config = load_db("CONFIG")
 library = load_db("LIB")
 
-# --- 3. HÀM AI BIẾN ĐỔI 10 CÂU (GIỮ CẤU TRÚC) ---
+# --- 3. HÀM AI BIẾN ĐỔI THEO SỐ LƯỢNG CÂU ---
 def ai_transform(q_list, api_key):
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f"Dựa trên 10 bài toán này: {q_list}. Hãy thay đổi con số và tên người nhưng giữ nguyên dạng toán. Trả về đúng định dạng JSON danh sách 10 câu: [{{'q': '...', 'a': '...'}}, ...]"
+        n = len(q_list)
+        prompt = f"Thay đổi số và tên người trong {n} bài toán này: {q_list}. Giữ nguyên dạng toán. Trả về JSON danh sách {n} câu: [{{'q': '...', 'a': '...'}}, ...]"
         response = model.generate_content(prompt)
         clean_json = response.text.replace('```json', '').replace('```', '').strip()
         return json.loads(clean_json)
@@ -86,46 +89,49 @@ st.markdown('<h1 class="main-header">TOÁN LỚP 3 - THẦY THÁI</h1>', unsafe_
 role = st.query_params.get("role", "student")
 
 # ==========================================
-# CỔNG QUẢN TRỊ (THẦY THÁI)
+# CỔNG QUẢN TRỊ
 # ==========================================
 if role == "teacher":
-    st.sidebar.header("🔑 QUẢN TRỊ VIÊN")
-    if st.sidebar.text_input("Nhập mật mã:", type="password") == "thai2026":
-        key = st.sidebar.text_input("Dán Gemini API Key:", value=config.get("api_key", ""), type="password")
+    st.sidebar.header("🔑 QUẢN TRỊ")
+    if st.sidebar.text_input("Mật mã:", type="password") == "thai2026":
+        key = st.sidebar.text_input("Gemini API Key:", value=config.get("api_key", ""), type="password")
         if st.sidebar.button("Lưu cấu hình"): save_db("CONFIG", {"api_key": key})
         
-        st.subheader("📝 SOẠN 10 CÂU HỎI GỐC")
+        # LỰA CHỌN SỐ CÂU HỎI
+        num_q = st.number_input("Lựa chọn số câu muốn giao:", min_value=1, max_value=20, value=len(library) if library else 5)
+        
+        st.subheader(f"📝 SOẠN {num_q} CÂU HỎI GỐC")
         with st.form("admin_form"):
             new_quizzes = []
-            col_a, col_b = st.columns(2)
-            for i in range(1, 11):
-                with (col_a if i <= 5 else col_b):
+            col1, col2 = st.columns(2)
+            for i in range(1, num_q + 1):
+                with (col1 if i <= (num_q + 1) // 2 else col2):
                     q = st.text_input(f"Câu hỏi {i}:", key=f"q{i}")
                     a = st.text_input(f"Đáp án {i}:", key=f"a{i}")
                     new_quizzes.append({"q": q, "a": a})
             
-            if st.form_submit_button("🚀 CẬP NHẬT 10 CÂU NÀY"):
+            if st.form_submit_button(f"🚀 CẬP NHẬT {num_q} CÂU NÀY"):
                 save_db("LIB", new_quizzes)
-                st.success("Đã cập nhật thư viện đề gốc!")
+                st.success(f"Đã cập nhật thư viện {num_q} câu!")
 
 # ==========================================
 # CỔNG HỌC SINH
 # ==========================================
 else:
     if not library: 
-        st.info("Chào các em! Thầy Thái đang chuẩn bị bài tập, các em quay lại sau nhé!")
+        st.info("Chào các em! Thầy Thái đang chuẩn bị bài tập nhé!")
     else:
         if 'student_quiz' not in st.session_state:
-            with st.spinner("Đang kết nối AI để tạo đề bài mới cho em..."):
+            with st.spinner("AI đang tạo đề bài mới cho em..."):
                 st.session_state.student_quiz = ai_transform(library, config.get("api_key", ""))
                 st.session_state.start_time = time.time()
 
         with st.form("student_form"):
-            st.markdown("<h3 style='color:#004F98;'>✍️ BÀI TẬP THỬ THÁCH</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='color:#004F98; text-align:center;'>✍️ THỬ THÁCH {len(st.session_state.student_quiz)} CÂU TOÁN</h3>", unsafe_allow_html=True)
             user_answers = []
             for idx, item in enumerate(st.session_state.student_quiz):
                 st.write(f"**Câu {idx+1}:** {item['q']}")
-                ans = st.text_input(f"Kết quả câu {idx+1}:", key=f"user_a{idx}")
+                ans = st.text_input(f"Đáp án câu {idx+1}:", key=f"user_a{idx}")
                 user_answers.append(ans)
             
             if st.form_submit_button("✅ NỘP BÀI CHO THẦY"):
@@ -133,11 +139,9 @@ else:
                 for i, item in enumerate(st.session_state.student_quiz):
                     if user_answers[i].strip() == str(item['a']).strip(): correct += 1
                 
-                duration = round(time.time() - st.session_state.start_time, 1)
-                st.success(f"Kết quả: {correct}/10 câu đúng! Thời gian: {duration} giây.")
-                if correct == 10: st.balloons()
-                # Tự động xóa bài cũ để lần sau làm sẽ là số mới
+                st.success(f"Kết quả: {correct}/{len(st.session_state.student_quiz)} câu đúng! Thời gian: {round(time.time() - st.session_state.start_time, 1)} giây.")
+                if correct == len(st.session_state.student_quiz): st.balloons()
                 del st.session_state.student_quiz
 
-# --- DÒNG CHỮ THƯƠNG HIỆU - LUÔN HIỂN THỊ ---
+# --- DÒNG CHỮ THƯƠNG HIỆU ---
 st.markdown('<div class="footer-design">DESIGNED BY TRẦN HOÀNG THÁI</div>', unsafe_allow_html=True)
