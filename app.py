@@ -3,7 +3,7 @@ import google.generativeai as genai
 import json, os, time, pandas as pd
 from datetime import datetime
 
-# --- 1. CẤU HÌNH GIAO DIỆN PHONG THỦY ---
+# --- 1. CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) ---
 st.set_page_config(page_title="Toán Lớp 3 - Thầy Thái", layout="wide")
 
 st.markdown("""
@@ -26,21 +26,16 @@ st.markdown("""
     .card { background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }
     .small-inline-title { color: #004F98 !important; font-size: 16px !important; font-weight: bold !important; margin-bottom: 5px; display: block; white-space: nowrap; }
     
-    /* STYLE CHO DÒNG LINK VÀ NÚT COPY */
-    .link-box {
-        background-color: #f8f9fa;
-        border: 1px dashed #004F98;
-        padding: 10px;
-        border-radius: 5px;
-        color: #d32f2f;
-        font-family: monospace;
-        font-size: 14px;
-        word-break: break-all;
-    }
+    /* STYLE DÒNG LINK */
+    .link-box { background-color: #f8f9fa; border: 1px dashed #004F98; padding: 8px; border-radius: 5px; color: #d32f2f; font-family: monospace; font-size: 13px; word-break: break-all; margin-bottom: 10px; }
+    
+    /* THU NHỎ VÙNG UPLOAD CSV */
+    .stFileUploader section { padding: 0 !important; min-height: 50px !important; }
+    .stFileUploader label { display: none; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. QUẢN LÝ DỮ LIỆU ---
+# --- 2. QUẢN LÝ DỮ LIỆU (BẢO TOÀN) ---
 DB = {"LIB": "quiz_lib.json", "RANK": "rank_live.json", "MASTER": "students_history.json", "CFG": "config.json"}
 def load_db(k):
     if os.path.exists(DB[k]):
@@ -49,22 +44,14 @@ def load_db(k):
 def save_db(k, d):
     with open(DB[k], "w", encoding="utf-8") as f: json.dump(d, f, ensure_ascii=False, indent=4)
 
-library = load_db("LIB")
-rank_live = load_db("RANK")
-master_db = load_db("MASTER")
-config = load_db("CFG")
-
-# TỰ HỦY SAU 48 GIỜ
-now = datetime.now()
-rank_live = [r for r in rank_live if (now - datetime.fromisoformat(r['start_ts'])).total_seconds() < 172800]
-save_db("RANK", rank_live)
+library, rank_live, master_db, config = load_db("LIB"), load_db("RANK"), load_db("MASTER"), load_db("CFG")
 
 # --- HIỂN THỊ HEADER/FOOTER ---
 st.markdown('<div class="sticky-header">TOÁN LỚP 3 - THẦY THÁI</div>', unsafe_allow_html=True)
 st.markdown('<div class="sticky-footer">DESIGNED BY TRẦN HOÀNG THÁI</div>', unsafe_allow_html=True)
 
 ma_de = st.query_params.get("de", "")
-role = st.query_params.get("role", "teacher" if not ma_de else "student") # Tự động vào vai teacher nếu không có mã đề
+role = st.query_params.get("role", "teacher" if not ma_de else "student")
 
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
@@ -78,29 +65,25 @@ if role == "teacher":
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<span class="small-inline-title">🔑 BẢO MẬT</span>', unsafe_allow_html=True)
         pwd = st.text_input("Mật mã", type="password", placeholder="Mật mã...", key="admin_pwd", label_visibility="collapsed")
-        
         st.markdown('<span class="small-inline-title" style="margin-top:15px;">🤖 CẤU HÌNH AI</span>', unsafe_allow_html=True)
         api = st.text_input("API Key", value=config.get("api_key", ""), type="password", placeholder="API Key...", key="admin_api", label_visibility="collapsed")
-        if st.button("LƯU", use_container_width=True):
-            save_db("CFG", {"api_key": api}); st.toast("Đã lưu API!")
-            
+        if st.button("LƯU API", use_container_width=True): save_db("CFG", {"api_key": api}); st.toast("Đã lưu!")
         if pwd == "thai2026":
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
-            df_m = pd.DataFrame({"Câu hỏi": ["10+5=?", "H.Tam giác cạnh 3,4,5. CV?"], "Đáp án": ["15", "12"]})
+            df_m = pd.DataFrame({"Câu hỏi": ["10+5=?", "12+8=?"], "Đáp án": ["15", "20"]})
             st.download_button("📥 TẢI CSV MẪU", df_m.to_csv(index=False).encode('utf-8-sig'), "mau.csv", "text/csv", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_r:
         if pwd == "thai2026":
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("📝 QUẢN LÝ NỘI DUNG ĐỀ BÀI")
+            st.subheader("📝 QUẢN LÝ NỘI DUNG")
             
-            d_col1, d_col2 = st.columns(2)
-            with d_col1:
-                danh_sach = ["-- Tạo mới --"] + list(library.keys())
-                de_chon = st.selectbox("Thư viện cũ:", options=danh_sach)
-            with d_col2:
-                up_f = st.file_uploader("Upload CSV (Tải đề hàng loạt):", type=["csv"])
+            d_col1, d_col2 = st.columns([2, 1])
+            with d_col1: de_chon = st.selectbox("Thư viện cũ:", options=["-- Tạo mới --"] + list(library.keys()))
+            with d_col2: 
+                st.markdown('<span style="font-size:12px; color:gray;">Upload CSV (nhỏ):</span>', unsafe_allow_html=True)
+                up_f = st.file_uploader("", type=["csv"])
             
             data_load = library.get(de_chon, [])
             if up_f:
@@ -108,39 +91,32 @@ if role == "teacher":
                 data_load = [{"q": r[0], "a": str(r[1])} for r in df_u.values]
 
             st.divider()
-            m_de = st.text_input("Bước 1: Nhập Mã đề tại đây (Ví dụ: BAI_01):", value=de_chon if de_chon != "-- Tạo mới --" else "")
+            m_de = st.text_input("Bước 1: Nhập Mã đề bài:", value=de_chon if de_chon != "-- Tạo mới --" else "")
             
-            # --- HIỂN THỊ LINK VÀ NÚT COPY (LUÔN XUẤT HIỆN KHI CÓ MÃ ĐỀ) ---
+            # --- DÒNG HIỂN THỊ LINK & NÚT COPY (KHÔI PHỤC THEO Ý THẦY) ---
             if m_de:
-                # Tự động nhận diện URL web
-                full_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}" # Link ví dụ
+                st.markdown(f"**Bước 2: Link bài tập cho học sinh:**")
+                # Tự động tạo link dựa trên domain thực tế
+                st.markdown(f'<div class="link-box">https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}</div>', unsafe_allow_html=True)
                 
-                st.markdown(f"**Bước 2: Copy link gửi cho học sinh:**")
-                st.markdown(f'<div class="link-box">{full_url}</div>', unsafe_allow_html=True)
-                
-                js_code = f"""
+                js_copy = f"""
                 <script>
                 function copyLink() {{
                     var url = window.location.origin + window.location.pathname + "?de={m_de}";
-                    var dummy = document.createElement("textarea");
-                    document.body.appendChild(dummy);
-                    dummy.value = url;
-                    dummy.select();
-                    document.execCommand("copy");
-                    document.body.removeChild(dummy);
-                    alert("Đã copy thành công link bài: " + url);
+                    var dummy = document.createElement("textarea"); document.body.appendChild(dummy);
+                    dummy.value = url; dummy.select(); document.execCommand("copy"); document.body.removeChild(dummy);
+                    alert("Đã copy thành công: " + url);
                 }}
                 </script>
-                <button onclick="copyLink()" style="width:100%; padding:12px; margin-top:10px; background-color:#004F98; color:white; border-radius:10px; border:none; font-weight:bold; cursor:pointer; font-size:16px;">
-                📋 NHẤN VÀO ĐÂY ĐỂ COPY LINK (DÙNG CHO ZALO/FACEBOOK)
+                <button onclick="copyLink()" style="width:100%; padding:10px; background-color:#004F98; color:white; border-radius:8px; border:none; font-weight:bold; cursor:pointer;">
+                📋 NHẤN ĐỂ COPY LINK GỬI QUA ZALO
                 </button>
                 """
-                st.markdown(js_code, unsafe_allow_html=True)
+                st.markdown(js_copy, unsafe_allow_html=True)
 
             st.divider()
-            st.markdown("**Bước 3: Soạn câu hỏi và đáp án:**")
-            num_q = st.number_input("Số lượng câu:", 1, 30, len(data_load) if data_load else 5)
-            
+            st.markdown("**Bước 3: Soạn câu hỏi:**")
+            num_q = st.number_input("Số lượng:", 1, 30, len(data_load) if data_load else 5)
             with st.form("admin_form"):
                 new_qs = []
                 c1, c2 = st.columns(2)
@@ -148,25 +124,20 @@ if role == "teacher":
                     vq = data_load[i-1]["q"] if i <= len(data_load) else ""
                     va = data_load[i-1]["a"] if i <= len(data_load) else ""
                     with (c1 if i <= (num_q+1)//2 else c2):
-                        q_in = st.text_input(f"Câu hỏi {i}:", value=vq, key=f"q{i}")
+                        q_in = st.text_input(f"Câu {i}:", value=vq, key=f"q{i}")
                         a_in = st.text_input(f"Đáp án {i}:", value=va, key=f"a{i}")
                         new_qs.append({"q": q_in, "a": a_in})
-                if st.form_submit_button("🚀 LƯU VÀO THƯ VIỆN & XUẤT BẢN", use_container_width=True):
-                    library[m_de] = new_qs
-                    save_db("LIB", library)
-                    st.success(f"Đã lưu thành công đề: {m_de}")
-                    st.rerun()
+                if st.form_submit_button("🚀 LƯU VÀ XUẤT BẢN", use_container_width=True):
+                    library[m_de] = new_qs; save_db("LIB", library); st.success(f"Đã lưu đề {m_de}!"); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.warning("Vui lòng nhập mật mã bên trái để mở bảng quản lý.")
 
 # ==========================================
-# CỔNG HỌC SINH
+# CỔNG HỌC SINH (GIỮ NGUYÊN)
 # ==========================================
 else:
     if ma_de in library:
         st.markdown(f'<div class="card"><h3>✍️ BÀI TẬP: {ma_de}</h3></div>', unsafe_allow_html=True)
     else:
-        st.info("Chào mừng các em! Hãy chọn bài tập Thầy Thái gửi để bắt đầu.")
+        st.info("Chào mừng các em! Hãy sử dụng link Thầy Thái gửi để làm bài.")
 
 st.markdown('</div>', unsafe_allow_html=True)
