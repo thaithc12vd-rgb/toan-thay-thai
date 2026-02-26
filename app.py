@@ -7,31 +7,37 @@ import time
 # --- 1. CẤU HÌNH GIAO DIỆN & KHÓA HỆ THỐNG TUYỆT ĐỐI ---
 st.set_page_config(page_title="Toán Lớp 3 - Thầy Thái", layout="wide", page_icon="🎓")
 
-st.markdown("""
+# MÃ CSS MẠNH NHẤT ĐỂ DIỆT NÚT MANAGE APP VÀ CÁC THÀNH PHẦN HỆ THỐNG
+hide_st_style = """
 <style>
-    /* ẨN HOÀN TOÀN NÚT MANAGE APP VÀ CÁC THÀNH PHẦN HỆ THỐNG */
+    /* Ẩn menu 3 chấm, footer và header mặc định */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .stDeployButton {display:none !important;}
-    div[data-testid="stStatusWidget"] {visibility: hidden;}
-    button[title="View source code"] {display:none !important;}
     
-    /* NỀN XÁM XANH PHONG THỦY */
+    /* Ẩn nút Manage App (Deploy button) bằng mọi giá */
+    .stDeployButton {display:none !important;}
+    button[data-testid="stDeployButton"] {display:none !important;}
+    
+    /* Ẩn các thanh công cụ và trang trí hệ thống */
+    div[data-testid="stStatusWidget"] {visibility: hidden;}
+    #stDecoration {display:none !important;}
+    [data-testid="stHeader"] {display:none !important;}
+    div[data-testid="stToolbar"] {display:none !important;}
+    
+    /* PHONG THỦY MỆNH THỦY */
     .stApp { background-color: #C5D3E8; } 
-
-    /* TIÊU ĐỀ CHÍNH - XANH ĐẠI DƯƠNG */
     .main-header { 
         color: #004F98 !important; 
         text-align: center; 
         font-size: clamp(30px, 5vw, 50px) !important; 
         font-weight: 900 !important;
-        margin-top: -60px;
-        margin-bottom: 20px;
+        margin-top: -80px;
+        margin-bottom: 10px;
         text-transform: uppercase;
     }
-
-    /* CHỮ DESIGN - CANH GIỮA */
+    
+    /* CHỮ DESIGN CANH GIỮA - PHONG THỦY */
     .footer-design {
         position: fixed;
         left: 0;
@@ -43,21 +49,22 @@ st.markdown("""
         font-weight: bold;
         padding: 15px 0;
         font-size: 16px;
-        letter-spacing: 2px;
         z-index: 999;
     }
-
-    /* KHUNG NỘI DUNG */
+    
+    /* KHUNG FORM TRẮNG SẠCH */
     div[data-testid="stForm"] {
         background-color: white;
         border-radius: 20px;
         padding: 30px;
         border-top: 10px solid #004F98;
-        box-shadow: 0px 15px 35px rgba(0, 79, 152, 0.1);
+        box-shadow: 0px 15px 35px rgba(0, 79, 152, 0.15);
         margin-bottom: 80px;
     }
 </style>
-""", unsafe_allow_html=True)
+"""
+
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # --- 2. QUẢN LÝ DỮ LIỆU ---
 FILES = {"LIB": "quiz_library.json", "CONFIG": "config.json"}
@@ -71,13 +78,13 @@ def save_db(k, d):
 config = load_db("CONFIG")
 library = load_db("LIB")
 
-# --- 3. HÀM AI BIẾN ĐỔI THEO SỐ LƯỢNG CÂU ---
+# --- 3. HÀM AI ---
 def ai_transform(q_list, api_key):
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
         n = len(q_list)
-        prompt = f"Thay đổi số và tên người trong {n} bài toán này: {q_list}. Giữ nguyên dạng toán. Trả về JSON danh sách {n} câu: [{{'q': '...', 'a': '...'}}, ...]"
+        prompt = f"Thay đổi số và tên người trong {n} bài toán này: {q_list}. Giữ nguyên dạng toán. Trả về JSON: [{{'q': '...', 'a': '...'}}, ...]"
         response = model.generate_content(prompt)
         clean_json = response.text.replace('```json', '').replace('```', '').strip()
         return json.loads(clean_json)
@@ -97,9 +104,7 @@ if role == "teacher":
         key = st.sidebar.text_input("Gemini API Key:", value=config.get("api_key", ""), type="password")
         if st.sidebar.button("Lưu cấu hình"): save_db("CONFIG", {"api_key": key})
         
-        # LỰA CHỌN SỐ CÂU HỎI
-        num_q = st.number_input("Lựa chọn số câu muốn giao:", min_value=1, max_value=20, value=len(library) if library else 5)
-        
+        num_q = st.number_input("Số câu muốn giao:", min_value=1, max_value=20, value=len(library) if library else 5)
         st.subheader(f"📝 SOẠN {num_q} CÂU HỎI GỐC")
         with st.form("admin_form"):
             new_quizzes = []
@@ -109,10 +114,9 @@ if role == "teacher":
                     q = st.text_input(f"Câu hỏi {i}:", key=f"q{i}")
                     a = st.text_input(f"Đáp án {i}:", key=f"a{i}")
                     new_quizzes.append({"q": q, "a": a})
-            
             if st.form_submit_button(f"🚀 CẬP NHẬT {num_q} CÂU NÀY"):
                 save_db("LIB", new_quizzes)
-                st.success(f"Đã cập nhật thư viện {num_q} câu!")
+                st.success(f"Đã cập nhật thư viện!")
 
 # ==========================================
 # CỔNG HỌC SINH
@@ -122,7 +126,7 @@ else:
         st.info("Chào các em! Thầy Thái đang chuẩn bị bài tập nhé!")
     else:
         if 'student_quiz' not in st.session_state:
-            with st.spinner("AI đang tạo đề bài mới cho em..."):
+            with st.spinner("AI đang tạo đề bài mới..."):
                 st.session_state.student_quiz = ai_transform(library, config.get("api_key", ""))
                 st.session_state.start_time = time.time()
 
@@ -133,15 +137,13 @@ else:
                 st.write(f"**Câu {idx+1}:** {item['q']}")
                 ans = st.text_input(f"Đáp án câu {idx+1}:", key=f"user_a{idx}")
                 user_answers.append(ans)
-            
-            if st.form_submit_button("✅ NỘP BÀI CHO THẦY"):
+            if st.form_submit_button("✅ NỘP BÀI"):
                 correct = 0
                 for i, item in enumerate(st.session_state.student_quiz):
                     if user_answers[i].strip() == str(item['a']).strip(): correct += 1
-                
-                st.success(f"Kết quả: {correct}/{len(st.session_state.student_quiz)} câu đúng! Thời gian: {round(time.time() - st.session_state.start_time, 1)} giây.")
+                st.success(f"Kết quả: {correct}/{len(st.session_state.student_quiz)} câu đúng!")
                 if correct == len(st.session_state.student_quiz): st.balloons()
                 del st.session_state.student_quiz
 
-# --- DÒNG CHỮ THƯƠNG HIỆU ---
+# --- DÒNG CHỮ THƯƠNG HIỆU - CANH GIỮA ---
 st.markdown('<div class="footer-design">DESIGNED BY TRẦN HOÀNG THÁI</div>', unsafe_allow_html=True)
