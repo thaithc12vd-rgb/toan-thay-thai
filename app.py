@@ -3,7 +3,7 @@ import google.generativeai as genai
 import json, os, time, pandas as pd
 from datetime import datetime
 
-# --- 1. CẤU HÌNH GIAO DIỆN (BẢO TOÀN) ---
+# --- 1. CẤU HÌNH GIAO DIỆN (BẢO TOÀN TUYỆT ĐỐI) ---
 st.set_page_config(page_title="Toán Lớp 3 - Thầy Thái", layout="wide")
 
 st.markdown("""
@@ -26,7 +26,7 @@ st.markdown("""
     .card { background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }
     .small-inline-title { color: #004F98 !important; font-size: 16px !important; font-weight: bold !important; margin-bottom: 5px; display: block; white-space: nowrap; }
     
-    /* STYLE DÒNG LINK HIỂN THỊ */
+    /* STYLE DÒNG LINK HIỂN THỊ - CHÚ Ý ĐÃ KHÔI PHỤC */
     .link-box { 
         background-color: #f1f3f4; 
         border: 1px dashed #004F98; 
@@ -41,7 +41,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. QUẢN LÝ DỮ LIỆU (GIỮ NGUYÊN) ---
+# --- 2. QUẢN LÝ DỮ LIỆU (BẢO TOÀN) ---
 DB = {"LIB": "quiz_lib.json", "RANK": "rank_live.json", "MASTER": "students_history.json", "CFG": "config.json"}
 def load_db(k):
     if os.path.exists(DB[k]):
@@ -56,8 +56,8 @@ library, rank_live, master_db, config = load_db("LIB"), load_db("RANK"), load_db
 st.markdown('<div class="sticky-header">TOÁN LỚP 3 - THẦY THÁI</div>', unsafe_allow_html=True)
 st.markdown('<div class="sticky-footer">DESIGNED BY TRẦN HOÀNG THÁI</div>', unsafe_allow_html=True)
 
-ma_de = st.query_params.get("de", "")
-role = st.query_params.get("role", "teacher" if not ma_de else "student")
+ma_de_url = st.query_params.get("de", "")
+role = st.query_params.get("role", "teacher" if not ma_de_url else "student")
 
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
@@ -76,7 +76,7 @@ if role == "teacher":
         if st.button("LƯU API", use_container_width=True): save_db("CFG", {"api_key": api}); st.toast("Đã lưu!")
         if pwd == "thai2026":
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
-            df_m = pd.DataFrame({"Câu hỏi": ["10+5=?", "Hình vuông cạnh 4cm. CV?"], "Đáp án": ["15", "16"]})
+            df_m = pd.DataFrame({"Câu hỏi": ["10+5=?", "8+2=?"], "Đáp án": ["15", "10"]})
             st.download_button("📥 TẢI CSV MẪU", df_m.to_csv(index=False).encode('utf-8-sig'), "mau.csv", "text/csv", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -85,12 +85,11 @@ if role == "teacher":
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("📝 QUẢN LÝ NỘI DUNG")
             
-            # CỘT CHỌN THƯ VIỆN VÀ UPLOAD CSV (THU NHỎ)
             d_col1, d_col2 = st.columns([3, 1])
             with d_col1: 
                 de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list(library.keys()))
             with d_col2:
-                st.markdown('<p style="font-size:11px; margin-bottom:0;">Upload đề (CSV):</p>', unsafe_allow_html=True)
+                st.markdown('<p style="font-size:11px; margin-bottom:0;">Upload (CSV):</p>', unsafe_allow_html=True)
                 up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed")
             
             data_load = library.get(de_chon, [])
@@ -101,13 +100,15 @@ if role == "teacher":
             st.divider()
             m_de = st.text_input("Bước 1: Nhập Mã đề bài (Ví dụ: BAI_01):", value=de_chon if de_chon != "-- Tạo mới --" else "")
             
-            # --- DÒNG COPY LINK & NÚT BẤM (ĐÃ KHÔI PHỤC) ---
+            # --- KHỐI HIỂN THỊ LINK & NÚT COPY (CHÚ Ý PHẦN NÀY) ---
             if m_de:
-                st.markdown(f"**Bước 2: Link gửi cho học sinh:**")
-                # Hiển thị dòng link để Thầy nhìn thấy
-                st.markdown(f'<div class="link-box">https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}</div>', unsafe_allow_html=True)
+                st.markdown(f"**Bước 2: Link bài tập cho học sinh:**")
+                # Dòng hiển thị link cho Thầy kiểm tra
+                # Lưu ý: Sửa domain này đúng với link app của Thầy trên Streamlit Cloud
+                link_gui = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
+                st.markdown(f'<div class="link-box">{link_gui}</div>', unsafe_allow_html=True)
                 
-                # Nút nhấn Copy tự động lấy domain
+                # Nút nhấn Copy tự động lấy domain máy chủ
                 js_copy = f"""
                 <script>
                 function copyToClipboard() {{
@@ -118,18 +119,18 @@ if role == "teacher":
                     el.select();
                     document.execCommand('copy');
                     document.body.removeChild(el);
-                    alert("Đã copy thành công: " + url);
+                    alert("Đã copy thành công link gửi học sinh: " + url);
                 }}
                 </script>
                 <button onclick="copyToClipboard()" style="width:100%; padding:12px; background-color:#004F98; color:white; border-radius:10px; border:none; font-weight:bold; cursor:pointer; font-size:16px;">
-                📋 NHẤN VÀO ĐÂY ĐỂ COPY LINK (GỬI ZALO)
+                📋 NHẤN ĐỂ COPY LINK (GỬI QUA ZALO)
                 </button>
                 """
                 st.markdown(js_copy, unsafe_allow_html=True)
 
             st.divider()
             st.markdown("**Bước 3: Bảng nhập liệu câu hỏi:**")
-            num_q = st.number_input("Số câu:", 1, 30, len(data_load) if data_load else 5)
+            num_q = st.number_input("Số câu hỏi hiển thị:", 1, 30, len(data_load) if data_load else 5)
             with st.form("admin_form"):
                 new_qs = []
                 c1, c2 = st.columns(2)
@@ -140,18 +141,17 @@ if role == "teacher":
                         q_in = st.text_input(f"Câu {i}:", value=vq, key=f"q{i}")
                         a_in = st.text_input(f"Đáp án {i}:", value=va, key=f"a{i}")
                         new_qs.append({"q": q_in, "a": a_in})
-                if st.form_submit_button("🚀 LƯU ĐỀ & XUẤT BẢN", use_container_width=True):
-                    library[m_de] = new_qs; save_db("LIB", library); st.success(f"Đã lưu đề {m_de}!"); st.rerun()
+                if st.form_submit_button("🚀 LƯU VÀ XUẤT BẢN", use_container_width=True):
+                    library[m_de] = new_qs; save_db("LIB", library); st.success(f"Đã lưu thành công!"); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # CỔNG HỌC SINH (GIỮ NGUYÊN)
 # ==========================================
 else:
-    # (Phần xử lý đề bài và xếp hạng Top 100...)
-    if ma_de in library:
-        st.markdown(f'<div class="card"><h3>✍️ BÀI TẬP: {ma_de}</h3></div>', unsafe_allow_html=True)
+    if ma_de_url in library:
+        st.markdown(f'<div class="card"><h3>✍️ BÀI TẬP: {ma_de_url}</h3></div>', unsafe_allow_html=True)
     else:
-        st.info("Chào mừng các em! Hãy sử dụng link Thầy gửi để bắt đầu bài học.")
+        st.info("Chào mừng các em! Hãy sử dụng đường link Thầy gửi để làm bài.")
 
 st.markdown('</div>', unsafe_allow_html=True)
