@@ -1,77 +1,76 @@
 import streamlit as st
+import google.generativeai as genai
 import json
 import os
 import time
 
-# --- CẤU HÌNH GIAO DIỆN ---
+# --- 1. CẤU HÌNH PHONG THỦY (MỆNH THỦY) ---
 st.set_page_config(page_title="Toán Lớp 3 - Thầy Thái", layout="wide")
-
 st.markdown("""
 <style>
-    .stApp { background-color: #C5D3E8; }
-    .main-header { color: #004F98; text-align: center; font-size: 35px; font-weight: 900; }
-    div[data-testid="stForm"] { background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; }
+    .stApp { background-color: #C5D3E8; } /* Nền xám xanh */
+    .main-header { color: #004F98; text-align: center; font-size: 40px; font-weight: 900; }
+    .footer { position: fixed; bottom: 10px; width: 100%; text-align: center; color: #004F98; font-weight: bold; letter-spacing: 1px; }
+    div[data-testid="stForm"] { background-color: white; border-radius: 15px; padding: 25px; border-top: 10px solid #004F98; box-shadow: 0px 10px 20px rgba(0,0,0,0.1); }
 </style>
 """, unsafe_allow_html=True)
 
-# --- HÀM XỬ LÝ DỮ LIỆU VĨNH CỬU ---
-FILES = {
-    "LIB": "quiz_library.json",   # Thư viện đề bài
-    "HIS": "user_history.json",   # Lượt làm (20 lần/em)
-    "ANNUAL": "annual_top10.json" # Bảng vàng cả năm
-}
+# --- 2. QUẢN LÝ DỮ LIỆU ---
+FILES = {"LIB": "quiz_library.json", "ANNUAL": "annual_data.json", "CONFIG": "config.json"}
+def load_db(k):
+    if os.path.exists(FILES[k]):
+        with open(FILES[k], "r", encoding="utf-8") as f: return json.load(f)
+    return {} if k != "ANNUAL" else []
+def save_db(k, d):
+    with open(FILES[k], "w", encoding="utf-8") as f: json.dump(d, f, ensure_ascii=False, indent=4)
 
-def load_db(key):
-    file = FILES[key]
-    if os.path.exists(file):
-        with open(file, "r", encoding="utf-8") as f: return json.load(f)
-    return {} if key != "ANNUAL" else []
-
-def save_db(key, data):
-    with open(FILES[key], "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-# Khởi tạo dữ liệu
+config = load_db("CONFIG")
 library = load_db("LIB")
-history = load_db("HIS")
-annual = load_db("ANNUAL")
 
-# --- PHÂN QUYỀN ---
-is_teacher = st.query_params.get("role") == "teacher"
+# --- 3. HÀM AI TỰ ĐỔI SỐ (GIỮ NGUYÊN CẤU TRÚC) ---
+def ai_generate_new_quiz(original_q, original_a, api_key):
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"Dựa trên bài toán: '{original_q}' với đáp án '{original_a}'. Hãy thay đổi các con số và tên riêng nhưng GIỮ NGUYÊN cấu trúc và dạng toán. Nếu là hình học, chỉ đổi số đo, giữ nguyên số cạnh. Trả về đúng định dạng: Câu hỏi: [nội dung] | Đáp án: [số]"
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except: return f"Câu hỏi: {original_q} | Đáp án: {original_a}"
 
-# --- GIAO DIỆN ---
-if is_teacher:
-    st.markdown("<h2 style='text-align: center;'>👨‍🏫 CỔNG GIAO ĐỀ VĨNH CỬU</h2>", unsafe_allow_html=True)
-    pass_input = st.sidebar.text_input("Mật khẩu quản trị:", type="password")
-    if pass_input == "thai2026":
-        with st.form("add_quiz"):
-            q_id = st.text_input("Mã đề mới (Ví dụ: DE_01):")
-            q_json = st.text_area("Nội dung câu hỏi (JSON):")
-            if st.form_submit_button("LƯU ĐỀ VÀO THƯ VIỆN"):
-                library[q_id] = json.loads(q_json)
-                save_db("LIB", library)
-                st.success(f"Đã lưu thành công đề {q_id}!")
+# --- 4. GIAO DIỆN CHÍNH ---
+st.markdown('<h1 class="main-header">TOÁN LỚP 3 - THẦY THÁI</h1>', unsafe_allow_html=True)
+
+role = st.query_params.get("role", "student")
+if role == "teacher":
+    st.sidebar.header("🔑 QUẢN TRỊ")
+    if st.sidebar.text_input("Mật khẩu:", type="password") == "thai2026":
+        key = st.sidebar.text_input("Dán Gemini API Key vào đây:", value=config.get("api_key", ""), type="password")
+        if st.sidebar.button("Lưu cấu hình"): save_db("CONFIG", {"api_key": key})
+        st.subheader("📝 Giao đề bài mẫu")
+        txt = st.text_area("Nội dung bài toán mẫu:")
+        ans = st.text_input("Đáp án đúng (số):")
+        if st.button("LƯU ĐỀ"):
+            library["current"] = {"q": txt, "a": ans}
+            save_db("LIB", library)
+            st.success("Đã lưu đề gốc thành công!")
 else:
-    st.markdown('<h1 class="main-header">TOÁN LỚP 3 - THẦY THÁI</h1>', unsafe_allow_html=True)
-    
-    if not library:
-        st.info("Thầy Thái đang soạn đề, các em quay lại sau nhé!")
+    if not library: st.info("Chờ Thầy Thái giao bài nhé!")
     else:
-        q_selected = st.selectbox("🎯 CHỌN BÀI TOÁN:", list(library.keys()))
-        tab1, tab2 = st.tabs(["✍️ LÀM BÀI", "🏆 BẢNG VÀNG CẢ NĂM"])
-        
-        with tab1:
-            name = st.text_input("Họ và tên của em:")
-            if name:
-                key = f"{name}_{q_selected}"
-                attempts = history.get(key, 0)
-                if attempts >= 20:
-                    st.error("Em đã hết 20 lượt làm bài này!")
-                else:
-                    st.warning(f"Lượt làm: {attempts}/20")
-                    with st.form("do_quiz"):
-                        # Logic hiển thị đề...
-                        if st.form_submit_button("NỘP BÀI"):
-                            history[key] = attempts + 1
-                            save_db("HIS", history)
-                            st.balloons()
+        if 'active_q' not in st.session_state:
+            res = ai_generate_new_quiz(library["current"]["q"], library["current"]["a"], config.get("api_key", ""))
+            parts = res.split(" | ")
+            st.session_state.active_q = parts[0].replace("Câu hỏi: ", "")
+            st.session_state.active_a = parts[1].replace("Đáp án: ", "")
+            st.session_state.start_time = time.time()
+
+        with st.form("quiz"):
+            st.write(f"### ✍️ {st.session_state.active_q}")
+            u_ans = st.text_input("Kết quả của em:")
+            if st.form_submit_button("NỘP BÀI"):
+                if u_ans.strip() == st.session_state.active_a.strip():
+                    st.balloons()
+                    st.success(f"Chính xác! Thời gian: {round(time.time()-st.session_state.start_time, 1)} giây.")
+                else: st.error(f"Sai rồi! Đáp án đúng là {st.session_state.active_a}")
+                del st.session_state.active_q # Để lần sau nhấn làm bài sẽ đổi số mới
+
+st.markdown('<div class="footer">DESIGNED BY TRẦN HOÀNG THÁI</div>', unsafe_allow_html=True)
