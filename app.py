@@ -93,33 +93,33 @@ if role == "teacher":
                 st.session_state.ver_key += 1
 
             st.divider()
-            st.markdown("👉 **Bước 1: Nhập hoặc Chọn Mã đề bài từ danh sách:**")
-            m_de_sel = st.selectbox("Chọn mã đề đã lưu:", options=[""] + list_de, label_visibility="collapsed")
-            m_de_input = st.text_input("Hoặc nhập mã đề mới tại đây:", value=m_de_sel if m_de_sel else (de_chon if de_chon != "-- Tạo mới --" else "")).strip()
-            final_m_de = m_de_input if m_de_input else m_de_sel
+            st.markdown("👉 **Bước 1: Nhập Mã đề bài:**")
+            m_de_input = st.text_input("Nhập mã đề tại đây:", value=de_chon if de_chon != "-- Tạo mới --" else "").strip()
+            final_m_de = m_de_input
 
             if final_m_de:
                 st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
+                # LẤY ĐỊA CHỈ TRANG CHỦ ĐỂ TRÁNH LỖI NOT FOUND
                 clean_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={final_m_de}"
                 st.markdown(f'<div class="link-box">{clean_url}</div>', unsafe_allow_html=True)
                 
-                # SỬA LỖI COPY TRỰC TIẾP (FIX BAD REQUEST)
-                js_final_copy = f"""
+                # SỬA LỖI COPY RA ĐOẠN CODE (CLEANED JAVASCRIPT)
+                js_fix_final = f"""
                 <script>
-                function copyNow() {{
-                    var text = encodeURI("{clean_url}").trim();
+                function copyFinal() {{
+                    var textToCopy = "{clean_url}";
                     var dummy = document.createElement("textarea");
                     document.body.appendChild(dummy);
-                    dummy.value = text;
+                    dummy.value = textToCopy;
                     dummy.select();
                     document.execCommand("copy");
                     document.body.removeChild(dummy);
-                    alert("✅ Đã copy link thành công! Thầy hãy dán qua trình duyệt khác.");
+                    alert("✅ Đã copy link thành công!");
                 }}
                 </script>
-                <button onclick="copyNow()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📋 NHẤN ĐỂ COPY LINK</button>
+                <button onclick="copyFinal()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📋 NHẤN ĐỂ COPY LINK</button>
                 """
-                st.markdown(js_final_copy, unsafe_allow_html=True)
+                st.markdown(js_fix_final, unsafe_allow_html=True)
 
             st.divider()
             if st.button("🚀 NHẤN VÀO ĐÂY ĐỂ LƯU ĐỀ VÀ XUẤT BẢN", use_container_width=True, type="primary"):
