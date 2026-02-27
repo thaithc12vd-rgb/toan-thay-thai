@@ -40,7 +40,7 @@ config = load_db("CFG")
 ma_de_url = st.query_params.get("de", "")
 role = st.query_params.get("role", "student")
 
-# --- HEADER PHÂN QUYỀN (BẢO TOÀN) ---
+# --- HEADER (BẢO TOÀN) ---
 if role == "teacher":
     h_title, h_sub = "CHÀO MỪNG THẦY ĐẾN VỚI APP TOÁN LỚP 3", "Chúc thầy luôn vượt qua thử thách"
 else:
@@ -57,13 +57,18 @@ if role == "teacher":
         pwd = st.text_input("Mật mã", type="password", key="admin_pwd", label_visibility="collapsed")
         
         if pwd == "thai2026":
+            st.markdown('<span class="small-inline-title" style="margin-top:15px;">🤖 CẤU HÌNH AI</span>', unsafe_allow_html=True)
+            api = st.text_input("Gemini API Key", value=config.get("api_key", ""), type="password", key="admin_api", label_visibility="collapsed")
+            if st.button("LƯU API"):
+                config["api_key"] = api
+                save_db("CFG", config)
+                st.toast("Đã lưu API!")
+
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
-            # File mẫu chuẩn tiếng Việt cho Excel máy cũ
-            df_m = pd.DataFrame({
-                "STT": [1], "Yêu cầu": ["Tính"], "Nội dung câu hỏi": ["10+20=?"], "Đáp án": ["30"]
-            })
+            df_m = pd.DataFrame({"Câu": [1], "Yêu cầu": ["Tính"], "Nội dung": ["10+20=?"], "Đáp án": ["30"]})
+            # Ép Excel nhận diện tiếng Việt bằng utf-8-sig
             csv_m = df_m.to_csv(index=False, encoding='utf-8-sig')
-            st.download_button("📥 TẢI CSV MẪU", csv_m.encode('utf-8-sig'), "mau_chuan_thay_thai.csv", "text/csv", use_container_width=True)
+            st.download_button("📥 TẢI CSV MẪU", csv_m.encode('utf-8-sig'), "mau_chuan.csv", "text/csv", use_container_width=True)
             
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📤 UPLOAD ĐỀ</span>', unsafe_allow_html=True)
             up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed")
@@ -75,29 +80,35 @@ if role == "teacher":
             st.subheader("📝 QUẢN LÝ ĐỀ BÀI")
             de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list(library.keys()))
             
-            # Khởi tạo hoặc lấy dữ liệu cũ
             if 'current_qs' not in st.session_state or de_chon != "-- Tạo mới --":
                 st.session_state.current_qs = library.get(de_chon, [])
 
-            # --- XỬ LÝ UPLOAD: BỎ DÒNG ĐẦU & GIỮ FONT ---
+            # --- XỬ LÝ ĐỌC FILE: CHỐNG LỖI FONT VÀ MẤT CÂU 1-5 ---
             if up_f is not None:
                 raw = up_f.getvalue()
-                # Tự dò bảng mã chống lỗi font
-                for enc in ['utf-8-sig', 'windows-1258', 'utf-8', 'latin-1']:
+                # Danh sách bảng mã ưu tiên (Có bảng mã Việt Nam Windows-1258 cho máy cũ)
+                for enc in ['utf-8-sig', 'windows-1258', 'utf-8', 'latin-1', 'cp1252']:
                     try:
-                        # Đọc file, ép skip dòng đầu (tiêu đề)
-                        df_u = pd.read_csv(io.BytesIO(raw), encoding=enc, skiprows=1, header=None)
-                        df_u = df_u.dropna(how='all') # Bỏ dòng trống
+                        # Đọc không bỏ qua dòng nào để tự xử lý logic
+                        df_u = pd.read_csv(io.BytesIO(raw), encoding=enc, header=None)
+                        df_u = df_u.dropna(how='all')
                         
-                        st.session_state.current_qs = []
-                        for _, r in df_u.iterrows():
-                            # Lấy cột 1, 2 ghép lại làm câu hỏi; cột 3 làm đáp án
-                            q = f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) else str(r[2])
-                            a = str(r[3]) if len(r) > 3 else ""
-                            st.session_state.current_qs.append({"q": q, "a": a})
+                        processed_qs = []
+                        for idx, r in df_u.iterrows():
+                            # Nếu dòng chứa tiêu đề thì bỏ qua
+                            if any(x in str(r[0]).lower() for x in ["câu", "stt", "cau", "1"]):
+                                # Kiểm tra nếu là câu hỏi thực sự (có nội dung ở cột 2) thì mới lấy
+                                if not pd.notnull(r[2]): continue
+                            
+                            if pd.notnull(r[2]):
+                                q = f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) else str(r[2])
+                                a = str(r[3]) if len(r) > 3 else ""
+                                processed_qs.append({"q": q, "a": a})
                         
-                        st.success(f"✅ Đã nhận {len(st.session_state.current_qs)} câu. Đã bỏ dòng tiêu đề.")
-                        break
+                        if processed_qs:
+                            st.session_state.current_qs = processed_qs
+                            st.success(f"✅ Đã nhận đủ {len(st.session_state.current_qs)} câu. Đã sửa lỗi font!")
+                            break
                     except: continue
 
             st.divider()
@@ -106,20 +117,20 @@ if role == "teacher":
             if m_de:
                 st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
                 link_hs = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
-                st.markdown(f'<div class="link-box">{link_hs}</div>', unsafe_allow_html=True)
-                if st.button("📋 CLICK ĐỂ COPY LINK", use_container_width=True):
+                st.markdown(f'<div class="link-box" id="link_hs">{link_hs}</div>', unsafe_allow_html=True)
+                
+                # NÚT COPY MẠNH MẼ
+                if st.button("📋 NHẤN ĐỂ COPY LINK"):
                     st.write(f'<script>navigator.clipboard.writeText("{link_hs}"); alert("Đã copy!");</script>', unsafe_allow_html=True)
 
             st.divider()
-            st.markdown("**👉 Bước 3: Soạn câu hỏi (Hiện đủ từ Câu 1):**")
-            # Tự động nhận diện số câu
+            st.markdown("**👉 Bước 3: Soạn câu hỏi (Hiện đầy đủ từ Câu 1):**")
             total_qs = len(st.session_state.current_qs) if st.session_state.current_qs else 5
             num_q = st.number_input("Số câu hiện có:", 1, 1000, value=total_qs)
 
             with st.form("admin_form"):
                 new_qs = []
                 for i in range(1, num_q + 1):
-                    # Lấy dữ liệu từ index i-1 (Câu 1 tương ứng index 0)
                     vq = st.session_state.current_qs[i-1]["q"] if i <= len(st.session_state.current_qs) else ""
                     va = st.session_state.current_qs[i-1]["a"] if i <= len(st.session_state.current_qs) else ""
                     st.markdown(f"**Câu {i}**")
@@ -130,8 +141,7 @@ if role == "teacher":
                     library[m_de] = new_qs; save_db("LIB", library); st.success("Đã lưu!"); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # PHẦN HỌC SINH (BẢO TOÀN)
     if ma_de_url in library:
         st.markdown(f'<div class="card"><h3>✍️ BÀI TẬP: {ma_de_url}</h3></div>', unsafe_allow_html=True)
-    else: st.info("Chào mừng các em! Hãy sử dụng link Thầy Thái gửi.")
+    else: st.info("Chào mừng các em! Hãy sử dụng link Thầy gửi.")
 st.markdown('</div>', unsafe_allow_html=True)
