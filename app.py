@@ -31,16 +31,30 @@ st.markdown(f"""
     }}
     .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
     .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
-    .main-content {{ margin-top: 110px; margin-bottom: 60px; padding: 0 20px; }}
+    .main-content {{ margin-top: 110px; margin-bottom: 80px; padding: 0 20px; }}
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
-    .footer-signature {{
-        text-align: center; padding: 20px; color: #004F98; font-weight: bold; font-size: 14px;
+    
+    /* CHỮ KÝ CỐ ĐỊNH KHÔNG DI CHUYỂN KHI LĂN CHUỘT */
+    .fixed-footer {{
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #C5D3E8;
+        color: #004F98;
+        text-align: center;
+        padding: 10px 0;
+        font-weight: bold;
+        font-size: 14px;
+        z-index: 1001;
+        border-top: 1px solid rgba(0,79,152,0.1);
     }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
     <div class="sub-title">{display_subtitle}</div>
 </div>
+<div class="fixed-footer">DESIGN BY TRAN HOANG THAI</div>
 """, unsafe_allow_html=True)
 
 # --- 2. QUẢN LÝ DỮ LIỆU ---
@@ -132,7 +146,7 @@ if role == "teacher":
 
             st.markdown("**👉 Bước 3: Soạn thảo nội dung:**")
             count_data = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
-            num_q = st.number_input("Số câu hiển thị:", 1, 100, value=count_data, key=f"num_{st.session_state.ver_key}")
+            num_q = st.number_input("Số câu hiện có:", 1, 100, value=count_data, key=f"num_{st.session_state.ver_key}")
 
             for i in range(1, num_q + 1):
                 vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
@@ -143,22 +157,22 @@ if role == "teacher":
                 st.markdown("---")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
+    # --- PHẦN HIỂN THỊ CHO HỌC SINH ---
     if ma_de_url and ma_de_url in library:
         st.markdown(f'<div class="card"><h3>✍️ ĐANG LÀM ĐỀ: {ma_de_url}</h3></div>', unsafe_allow_html=True)
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        student_name = st.text_input("Nhập tên của em để nộp bài:", key="student_name")
+        student_name = st.text_input("Bước 1: Nhập tên của em để hiện đề bài:", key="student_name").strip()
         st.markdown('</div>', unsafe_allow_html=True)
         
-        answers = {}
-        for idx, item in enumerate(library[ma_de_url], 1):
-            st.markdown(f'<div class="card"><b>Câu {idx}:</b> {item["q"]}</div>', unsafe_allow_html=True)
-            answers[f"Câu {idx}"] = st.text_input(f"Câu trả lời của em cho câu {idx}:", key=f"ans_{idx}", label_visibility="collapsed")
-        
-        # --- NÚT NỘP BÀI CHO HỌC SINH ---
-        if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
-            if not student_name:
-                st.error("Em vui lòng nhập tên trước khi nộp bài nhé!")
-            else:
+        # CHỈ HIỆN CÂU HỎI KHI ĐÃ NHẬP TÊN
+        if student_name:
+            st.success(f"Chào {student_name}! Mời em bắt đầu làm bài.")
+            answers = {}
+            for idx, item in enumerate(library[ma_de_url], 1):
+                st.markdown(f'<div class="card"><b>Câu {idx}:</b> {item["q"]}</div>', unsafe_allow_html=True)
+                answers[f"Câu {idx}"] = st.text_input(f"Trả lời câu {idx}:", key=f"ans_{idx}", label_visibility="collapsed")
+            
+            if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
                 results = load_db(RESULT_PATH)
                 submission = {
                     "time": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
@@ -170,10 +184,10 @@ else:
                 results[ma_de_url].append(submission)
                 save_db(RESULT_PATH, results)
                 st.balloons()
-                st.success(f"Chúc mừng {student_name}! Bài làm của em đã được gửi tới Thầy Thái.")
+                st.success(f"Bài làm của {student_name} đã được gửi tới Thầy Thái!")
+        else:
+            st.warning("Em hãy nhập tên ở trên để xem câu hỏi nhé!")
     else:
         st.info("Chào mừng các em! Vui lòng dùng đúng link Thầy gửi để làm bài.")
 
-# --- CHỮ KÝ CỐ ĐỊNH Ở CUỐI ---
-st.markdown('<div class="footer-signature">DESIGN BY TRAN HOANG THAI</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
