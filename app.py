@@ -40,7 +40,7 @@ st.markdown(f"""
         top: -130px; 
         text-align: center;
         z-index: 99;
-        margin-bottom: -100px;
+        margin-bottom: -120px;
     }}
     
     .mini-quiz-box {{
@@ -53,16 +53,24 @@ st.markdown(f"""
         font-weight: bold;
         border: 1px solid #FFD700;
         box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        margin-bottom: 5px;
     }}
 
-    /* CANH GIỮA CHO Ô NHẬP TÊN */
-    .center-container {{
+    /* CANH GIỮA & ĐỊNH DẠNG CHỮ MỜI NHẬP TÊN */
+    .invite-text {{
+        color: #004F98;
+        font-weight: 900;
+        font-size: 18px;
+        text-align: center;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+    }}
+    
+    .center-wrapper {{
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        text-align: center;
+        width: 100%;
+        margin-top: 20px;
     }}
 
     .fixed-footer {{
@@ -73,7 +81,7 @@ st.markdown(f"""
     }}
     
     .ultra-tight-hr {{ 
-        margin: 0 auto !important; 
+        margin: 5px auto !important; 
         border: 0; 
         border-top: 1px solid rgba(0,0,0,0.1); 
         width: 100%;
@@ -192,15 +200,24 @@ else:
             </div>
         ''', unsafe_allow_html=True)
 
-        # KHỐI NHẬP TÊN CANH GIỮA
-        st.markdown('<div class="center-container">', unsafe_allow_html=True)
-        st.markdown('<div class="card" style="margin-top:-30px; width: 100%; max-width: 600px;">', unsafe_allow_html=True)
-        student_name = st.text_input("MỜI CÁC EM NHẬP HỌ TÊN ĐỂ LÀM BÀI:", key="student_name").strip()
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # PHẦN NHẬP TÊN CANH GIỮA, CHỮ XANH ĐẬM, KHÔNG KHUNG
+        if not st.session_state.get('student_name', "").strip():
+            st.markdown('<div class="center-wrapper">', unsafe_allow_html=True)
+            st.markdown('<p class="invite-text">MỜI CÁC EM NHẬP HỌ TÊN ĐỂ LÀM BÀI</p>', unsafe_allow_html=True)
+            
+            # Cột canh giữa cho input
+            c1, c2, c3 = st.columns([1, 2, 1])
+            with c2:
+                student_name = st.text_input("", key="student_name_input", label_visibility="collapsed").strip()
+                if student_name:
+                    st.session_state.student_name = student_name
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
         
-        if student_name:
-            st.success(f"Chào {student_name}! Mời em bắt đầu làm bài.")
+        # CHỈ HIỆN CÂU HỎI KHI ĐÃ CÓ TÊN TRONG SESSION
+        current_name = st.session_state.get('student_name', "")
+        if current_name:
+            st.success(f"Chào {current_name}! Mời em bắt đầu làm bài.")
             answers = {}
             quiz_data = library[ma_de_url]
             for idx, item in enumerate(quiz_data, 1):
@@ -218,7 +235,7 @@ else:
                 results = load_db(RESULT_PATH)
                 submission = {
                     "time": datetime.now().strftime("%H:%M:%S"),
-                    "student": student_name,
+                    "student": current_name,
                     "quiz": ma_de_url,
                     "score": score
                 }
@@ -228,7 +245,7 @@ else:
                 
                 st.balloons()
                 st.markdown(f"""<div class="card" style="text-align:center; border-top:8px solid #FFD700;">
-                    <h2 style="color:#004F98;">KẾT QUẢ CỦA {student_name.upper()}</h2>
+                    <h2 style="color:#004F98;">KẾT QUẢ CỦA {current_name.upper()}</h2>
                     <h1 style="font-size:60px; color:#d32f2f;">{score} / 10</h1>
                     <p>Em làm đúng {correct_count}/{len(quiz_data)} câu</p>
                 </div>""", unsafe_allow_html=True)
