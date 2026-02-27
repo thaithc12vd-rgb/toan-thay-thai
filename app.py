@@ -51,6 +51,7 @@ st.markdown(f"""
     .stButton>button {{ width: 100%; border-radius: 10px; }}
     .live-btn button {{ background-color: #d32f2f !important; color: white !important; font-weight: bold !important; }}
     .hide-btn button {{ background-color: #6c757d !important; color: white !important; }}
+    .download-btn button {{ background-color: #28a745 !important; color: white !important; font-weight: bold !important; margin-bottom: 10px; }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -96,16 +97,31 @@ if role == "teacher":
         st.markdown('<div class="card">', unsafe_allow_html=True)
         pwd = st.text_input("Mật mã quản trị", type="password", key="p_admin")
         if pwd == "thai2026":
-            up_f = st.file_uploader("📤 Tải CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
+            # --- NÚT TẢI FILE MẪU ---
+            template_df = pd.DataFrame({
+                "Câu": ["Câu 1", "Câu 2", "Câu 3"],
+                "Nội dung câu hỏi": ["5 + 5 = ?", "Hình tam giác có mấy cạnh?", "10 - 2 = ?"],
+                "Đáp án": ["10", "3", "8"]
+            })
+            towrap = io.BytesIO()
+            template_df.to_csv(towrap, index=False, encoding='utf-8-sig')
+            st.markdown('<div class="download-btn">', unsafe_allow_html=True)
+            st.download_button(label="📥 TẢI FILE MẪU", data=towrap.getvalue(), file_name="mau_de_toan_thay_thai.csv", mime="text/csv")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            up_f = st.file_uploader("📤 TẢI CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
             if up_f:
-                df = pd.read_csv(io.BytesIO(up_f.getvalue()), header=None, encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
-                st.session_state.data_step3 = [{"q": f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) else str(r[2]), "a": str(r[3]) if len(r)>3 else ""} for _, r in df.iterrows() if not any(x in str(r[0]).lower() for x in ["stt", "câu"])]
+                df = pd.read_csv(io.BytesIO(up_f.getvalue()), encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
+                # Dò theo cột: Nội dung câu hỏi và Đáp án
+                st.session_state.data_step3 = [{"q": str(r.get("Nội dung câu hỏi", r.iloc[1])), "a": str(r.get("Đáp án", r.iloc[2]))} for _, r in df.iterrows()]
                 st.session_state.ver_key += 1; st.rerun()
+            
             st.markdown('<div class="live-btn">', unsafe_allow_html=True)
             if st.button("🔴 HIỆN LIVE"): st.session_state.view_live = True
             st.markdown('</div><div class="hide-btn">', unsafe_allow_html=True)
             if st.button("⚪ ẨN LIVE"): st.session_state.view_live = False
             st.markdown('</div>', unsafe_allow_html=True)
+            
             m_de_cnt = st.text_input("Mã đề đếm tổng:", key="cnt_de").strip()
             if m_de_cnt:
                 total_em = sum(1 for k in profiles.keys() if m_de_cnt in k)
@@ -167,16 +183,20 @@ else:
         
         if st.session_state.is_accepted and not st.session_state.is_submitted:
             ans_dict = {}
-            # HIỂN THỊ CÂU HỎI CỐ ĐỊNH TỪ THƯ VIỆN
             for idx, item in enumerate(library[ma_de_url], 1):
                 st.markdown(f'<div class="card"><b>Câu {idx}:</b> {item["q"]}</div>', unsafe_allow_html=True)
-                ans_dict[f"Câu {idx}"] = st.text_input(f"A_{idx}", key=f"ans_{idx}", label_visibility="collapsed", autocomplete="off")
+                ans_dict[f"Câu {idx}"] = st.text_input(f"Nhập kết quả {idx}", key=f"ans_{idx}", label_visibility="collapsed", autocomplete="off")
             
             if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
-                # CHẤM ĐIỂM DỰA TRÊN ĐÁP ÁN CỐ ĐỊNH
-                dung = sum(1 for idx, it in enumerate(library[ma_de_url], 1) if str(ans_dict.get(f"Câu {idx}", "")).strip() == str(it["a"]).strip())
-                diem = int((dung / len(library[ma_de_url])) * 10)
+                # CHẤM ĐIỂM DÒ THEO TỪNG CÂU VÀ ĐÁP ÁN TRONG FILE
+                dung = 0
+                for idx, it in enumerate(library[ma_de_url], 1):
+                    cau_tra_loi = str(ans_dict.get(f"Câu {idx}", "")).strip().lower()
+                    dap_an_dung = str(it["a"]).strip().lower()
+                    if cau_tra_loi == dap_an_dung:
+                        dung += 1
                 
+                diem = int((dung / len(library[ma_de_url])) * 10)
                 dur_sec = int(time.time() - st.session_state.start_time)
                 phut, giay = divmod(dur_sec, 60)
                 tg_lam = f"{phut} phút {giay} giây"
