@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 # --- 1. CẤU HÌNH GIAO DIỆN ---
 st.set_page_config(page_title="Toan Lop 3 - Thay Thai", layout="wide")
 
-# Lấy tham số truy vấn an toàn
 try:
     query_params = st.query_params
     ma_de_url = query_params.get("de", "")
@@ -47,7 +46,6 @@ st.markdown(f"""
     .fixed-footer {{ position: fixed; bottom: 0; left: 0; width: 100%; background-color: #C5D3E8; color: #004F98; text-align: center; padding: 10px 0; font-weight: bold; font-size: 14px; z-index: 1001; border-top: 1px solid rgba(0,79,152,0.1); }}
     .result-card {{ margin-top: -150px !important; text-align: center; border-top: 8px solid #FFD700 !important; }}
     .rank-text {{ font-size: 22px; font-weight: 900; color: #d32f2f; margin-top: 10px; }}
-    .ultra-tight-hr {{ margin: 5px auto !important; border: 0; border-top: 1px solid rgba(0,0,0,0.1); width: 100%; }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -56,36 +54,29 @@ st.markdown(f"""
 <div class="fixed-footer">DESIGN BY TRAN HOANG THAI</div>
 """, unsafe_allow_html=True)
 
-# --- 2. BỘ MÁY BIẾN ĐỔI ĐỀ BÀI (SỬA LỖI NAMEERROR) ---
+# --- 2. BỘ MÁY BIẾN ĐỔI ĐỀ BÀI ---
 TEN_DANH_SACH = ["An", "Bình", "Chi", "Dũng", "Yến", "Lan", "Nam", "Mai", "Cúc", "Tùng", "Linh", "Hùng", "Bắc"]
 
 def bien_doi_cau_hoi(q_text, a_text):
     def thay_so_ngau_nhien(match):
         num = int(match.group())
         return str(max(1, num + random.randint(-3, 3)))
-    
-    # Biến đổi số
     cau_moi = re.sub(r'\b\d+\b', thay_so_ngau_nhien, q_text)
-    
-    # Biến đổi tên
     for t in TEN_DANH_SACH:
         if t in cau_moi:
             cau_moi = cau_moi.replace(t, random.choice([x for x in TEN_DANH_SACH if x != t]))
-    
-    # Tính lại đáp án
     da_moi = a_text
     try:
         if str(a_text).isdigit():
-            bieu_thuc_sach = cau_moi.replace('x', '*').replace(':', '/')
-            cac_so = re.findall(r'\d+', bieu_thuc_sach)
-            if len(cac_so) >= 2:
-                s1, s2 = int(cac_so[0]), int(cac_so[1])
+            clean_q = cau_moi.replace('x', '*').replace(':', '/')
+            nums = re.findall(r'\d+', clean_q)
+            if len(nums) >= 2:
+                s1, s2 = int(nums[0]), int(nums[1])
                 if '+' in q_text: da_moi = str(s1 + s2)
                 elif '-' in q_text: da_moi = str(s1 - s2)
                 elif 'x' in q_text or '*' in q_text: da_moi = str(s1 * s2)
                 elif ':' in q_text or '/' in q_text: da_moi = str(int(s1 / s2))
-    except:
-        da_moi = a_text
+    except: da_moi = a_text
     return {"q": cau_moi, "a": da_moi}
 
 # --- 3. QUẢN LÝ DỮ LIỆU ---
@@ -104,7 +95,7 @@ def ghi_file(path, data):
 def quet_don_48h(results):
     hien_tai = datetime.now()
     thay_doi = False
-    ket_qua_moi = {}
+    kq_moi = {}
     for de, ds in results.items():
         loc = []
         for r in ds:
@@ -113,20 +104,15 @@ def quet_don_48h(results):
                 if hien_tai - tg < timedelta(hours=48): loc.append(r)
                 else: thay_doi = True
             except: loc.append(r)
-        ket_qua_moi[de] = loc
-    if thay_doi: ghi_file(FILE_RES, ket_qua_moi)
-    return ket_qua_moi
+        kq_moi[de] = loc
+    if thay_doi: ghi_file(FILE_RES, kq_moi)
+    return kq_moi
 
 library = doc_file(FILE_DB)
 profiles = doc_file(FILE_PROF)
 results_all = quet_don_48h(doc_file(FILE_RES))
 
-# Khởi tạo session an toàn triệt để
-cac_bien_tam = [
-    ('is_accepted', False), ('is_submitted', False), ('cau_hoi_hien_tai', []), 
-    ('ver_key', 0), ('data_step3', []), ('student_name', ""), ('current_rank', 0), ('final_score', 0)
-]
-for k, v in cac_bien_tam:
+for k, v in [('is_accepted', False), ('is_submitted', False), ('cau_hoi_hien_tai', []), ('ver_key', 0), ('data_step3', []), ('student_name', ""), ('current_rank', 0), ('final_score', 0)]:
     if k not in st.session_state: st.session_state[k] = v
 
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
@@ -137,10 +123,10 @@ if role == "teacher":
         st.markdown('<div class="card">', unsafe_allow_html=True)
         pwd = st.text_input("Mật mã quản trị", type="password", key="p_admin")
         if pwd == "thai2026":
-            st.success("Đã xác nhận")
             up_f = st.file_uploader("📤 Tải CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
             if up_f:
-                df = pd.read_csv(io.BytesIO(up_f.getvalue()), header=None, encoding='utf-8-sig').dropna(how='all')
+                # SỬA LỖI UNICODE TẠI ĐÂY
+                df = pd.read_csv(io.BytesIO(up_f.getvalue()), header=None, encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
                 st.session_state.data_step3 = [{"q": f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) else str(r[2]), "a": str(r[3]) if len(r)>3 else ""} for _, r in df.iterrows() if not any(x in str(r[0]).lower() for x in ["stt", "câu"])]
                 st.session_state.ver_key += 1; st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -167,7 +153,7 @@ if role == "teacher":
             st.markdown('</div>', unsafe_allow_html=True)
 else:
     if ma_de_url in library:
-        st.markdown(f'<div class="move-up-container"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div><hr class="ultra-tight-hr"></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="move-up-container"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
         if not st.session_state.is_accepted:
             st.markdown('<div class="center-wrapper-top"><p class="invite-text">MỜI CÁC EM NHẬP HỌ TÊN ĐỂ LÀM BÀI</p>', unsafe_allow_html=True)
             c1, c2, c3 = st.columns([1, 2, 1])
@@ -205,7 +191,9 @@ else:
                 st.session_state.final_score = diem; st.session_state.is_submitted = True; st.balloons(); st.rerun()
 
         if st.session_state.is_submitted:
+            # KHUNG KẾT QUẢ DỜI LÊN 4CM
             st.markdown(f'<div class="card result-card"><h2 style="color:#004F98;">KẾT QUẢ: {st.session_state.final_score}/10</h2><div class="rank-text">BẠN ĐANG ĐỨNG THỨ HẠNG SỐ: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
+            # BẢNG LIVE PHÍA DƯỚI
             ds_live = quet_don_48h(doc_file(FILE_RES)).get(ma_de_url, [])
             if ds_live:
                 df = pd.DataFrame(ds_live).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
