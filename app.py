@@ -66,7 +66,6 @@ if role == "teacher":
 
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
             df_m = pd.DataFrame({"Câu": [1], "Yêu cầu": ["Tính"], "Nội dung": ["10+20=?"], "Đáp án": ["30"]})
-            # Ép Excel nhận diện tiếng Việt bằng utf-8-sig
             csv_m = df_m.to_csv(index=False, encoding='utf-8-sig')
             st.download_button("📥 TẢI CSV MẪU", csv_m.encode('utf-8-sig'), "mau_chuan.csv", "text/csv", use_container_width=True)
             
@@ -77,37 +76,37 @@ if role == "teacher":
     with col_r:
         if pwd == "thai2026":
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("📝 QUẢN LÝ ĐỀ BÀI")
+            st.subheader("📝 QUẢN LÝ NỘI DUNG ĐỀ BÀI")
             de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list(library.keys()))
             
-            if 'current_qs' not in st.session_state or de_chon != "-- Tạo mới --":
-                st.session_state.current_qs = library.get(de_chon, [])
+            # Khởi tạo danh sách câu hỏi trong session_state
+            if 'temp_qs' not in st.session_state or de_chon != "-- Tạo mới --":
+                st.session_state.temp_qs = library.get(de_chon, [])
 
-            # --- XỬ LÝ ĐỌC FILE: CHỐNG LỖI FONT VÀ MẤT CÂU 1-5 ---
+            # --- XỬ LÝ UPLOAD: LẤY TOÀN BỘ DỮ LIỆU ---
             if up_f is not None:
                 raw = up_f.getvalue()
-                # Danh sách bảng mã ưu tiên (Có bảng mã Việt Nam Windows-1258 cho máy cũ)
                 for enc in ['utf-8-sig', 'windows-1258', 'utf-8', 'latin-1', 'cp1252']:
                     try:
-                        # Đọc không bỏ qua dòng nào để tự xử lý logic
+                        # Đọc file không header để lấy sạch dòng đầu
                         df_u = pd.read_csv(io.BytesIO(raw), encoding=enc, header=None)
-                        df_u = df_u.dropna(how='all')
+                        df_u = df_u.dropna(how='all') # Bỏ dòng trắng hoàn toàn
                         
-                        processed_qs = []
+                        newList = []
                         for idx, r in df_u.iterrows():
-                            # Nếu dòng chứa tiêu đề thì bỏ qua
-                            if any(x in str(r[0]).lower() for x in ["câu", "stt", "cau", "1"]):
-                                # Kiểm tra nếu là câu hỏi thực sự (có nội dung ở cột 2) thì mới lấy
-                                if not pd.notnull(r[2]): continue
+                            # Nếu dòng chứa tiêu đề 'STT' hoặc 'Câu' thì bỏ, nếu không thì lấy hết
+                            val0 = str(r[0]).lower()
+                            if "stt" in val0 or "câu" in val0 or "cau" in val0:
+                                continue
                             
-                            if pd.notnull(r[2]):
-                                q = f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) else str(r[2])
-                                a = str(r[3]) if len(r) > 3 else ""
-                                processed_qs.append({"q": q, "a": a})
+                            # Lấy dữ liệu: Cột 1 (Yêu cầu) + Cột 2 (Nội dung) -> Cột 3 (Đáp án)
+                            q_text = f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) and r[1] != "" else str(r[2])
+                            a_text = str(r[3]) if len(r) > 3 else ""
+                            newList.append({"q": q_text, "a": a_text})
                         
-                        if processed_qs:
-                            st.session_state.current_qs = processed_qs
-                            st.success(f"✅ Đã nhận đủ {len(st.session_state.current_qs)} câu. Đã sửa lỗi font!")
+                        if newList:
+                            st.session_state.temp_qs = newList
+                            st.success(f"✅ Đã nhận {len(newList)} câu hỏi từ file!")
                             break
                     except: continue
 
@@ -117,22 +116,23 @@ if role == "teacher":
             if m_de:
                 st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
                 link_hs = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
-                st.markdown(f'<div class="link-box" id="link_hs">{link_hs}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="link-box">{link_hs}</div>', unsafe_allow_html=True)
                 
                 # NÚT COPY MẠNH MẼ
                 if st.button("📋 NHẤN ĐỂ COPY LINK"):
-                    st.write(f'<script>navigator.clipboard.writeText("{link_hs}"); alert("Đã copy!");</script>', unsafe_allow_html=True)
+                    st.write(f'<script>navigator.clipboard.writeText("{link_hs}"); alert("Đã copy thành công!");</script>', unsafe_allow_html=True)
 
             st.divider()
-            st.markdown("**👉 Bước 3: Soạn câu hỏi (Hiện đầy đủ từ Câu 1):**")
-            total_qs = len(st.session_state.current_qs) if st.session_state.current_qs else 5
-            num_q = st.number_input("Số câu hiện có:", 1, 1000, value=total_qs)
+            st.markdown("**👉 Bước 3: Soạn câu hỏi (Kiểm tra từ Câu 1):**")
+            # Tự động đếm số câu
+            total = len(st.session_state.temp_qs) if st.session_state.temp_qs else 5
+            num_q = st.number_input("Số câu hiện có:", 1, 1000, value=total)
 
             with st.form("admin_form"):
                 new_qs = []
                 for i in range(1, num_q + 1):
-                    vq = st.session_state.current_qs[i-1]["q"] if i <= len(st.session_state.current_qs) else ""
-                    va = st.session_state.current_qs[i-1]["a"] if i <= len(st.session_state.current_qs) else ""
+                    vq = st.session_state.temp_qs[i-1]["q"] if i <= len(st.session_state.temp_qs) else ""
+                    va = st.session_state.temp_qs[i-1]["a"] if i <= len(st.session_state.temp_qs) else ""
                     st.markdown(f"**Câu {i}**")
                     q_in = st.text_input(f"Câu hỏi {i}", value=vq, key=f"q{i}", label_visibility="collapsed")
                     a_in = st.text_input(f"Đáp án {i}", value=va, key=f"a{i}")
