@@ -10,21 +10,33 @@ query_params = st.query_params
 ma_de_url = query_params.get("de", "")
 role = query_params.get("role", "student")
 
-st.markdown("""
+# --- THIẾT LẬP NỘI DUNG TIÊU ĐỀ THEO PHÂN QUYỀN ---
+if role == "teacher":
+    display_title = "HỆ THỐNG QUẢN LÝ CÂU HỎI YOUTUBE"
+    display_subtitle = "Chúc thầy vượt qua mọi thử thách"
+else:
+    display_title = "TOÁN LỚP 3 - THẦY THÁI"
+    display_subtitle = "Chúc các em làm bài tốt"
+
+st.markdown(f"""
 <style>
-    #MainMenu, footer, header, .stDeployButton {visibility: hidden; display:none !important;}
-    .stApp { background-color: #C5D3E8; } 
-    .sticky-header {
+    #MainMenu, footer, header, .stDeployButton {{visibility: hidden; display:none !important;}}
+    .stApp {{ background-color: #C5D3E8; }} 
+    .sticky-header {{
         position: fixed; top: 0; left: 0; width: 100%;
         background-color: #C5D3E8; color: #004F98 !important;
         text-align: center; padding: 10px 0; z-index: 1000;
         border-bottom: 2px solid #004F98; text-transform: uppercase;
-    }
-    .main-title { font-size: 30px; font-weight: 900; margin: 0; }
-    .sub-title { font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }
-    .main-content { margin-top: 110px; margin-bottom: 100px; padding: 0 20px; }
-    .card { background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    }}
+    .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
+    .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
+    .main-content {{ margin-top: 110px; margin-bottom: 100px; padding: 0 20px; }}
+    .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
 </style>
+<div class="sticky-header">
+    <div class="main-title">{display_title}</div>
+    <div class="sub-title">{display_subtitle}</div>
+</div>
 """, unsafe_allow_html=True)
 
 # --- 2. QUẢN LÝ DỮ LIỆU ---
@@ -52,7 +64,6 @@ if 'data_step3' not in st.session_state:
 if 'ver_key' not in st.session_state:
     st.session_state.ver_key = 0
 
-st.markdown(f'<div class="sticky-header"><div class="main-title">TOÁN LỚP 3 - THẦY THÁI</div><div class="sub-title">Hệ thống quản lý chuyên nghiệp</div></div>', unsafe_allow_html=True)
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
 if role == "teacher":
@@ -62,11 +73,9 @@ if role == "teacher":
         pwd = st.text_input("Mật mã quản trị", type="password", key="pwd_f")
         if pwd == "thai2026":
             st.success("Đã xác nhận")
-            # --- SỬA LỖI TRỌNG TÂM: Đọc file CSV an toàn ---
             up_f = st.file_uploader("📤 Tải đề từ CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
             if up_f:
                 try:
-                    # Sử dụng encoding_errors thay cho errors để tránh lỗi tham số
                     df = pd.read_csv(up_f, header=None, encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
                     newList = []
                     for _, r in df.iterrows():
