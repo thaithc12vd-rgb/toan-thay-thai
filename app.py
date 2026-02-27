@@ -2,7 +2,7 @@ import streamlit as st
 import json, os, pandas as pd
 import io
 
-# --- 1. CẤU HÌNH GIAO DIỆN (BẢO TOÀN) ---
+# --- 1. CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) ---
 st.set_page_config(page_title="Toán Lớp 3 - Thầy Thái", layout="wide")
 
 st.markdown("""
@@ -40,11 +40,10 @@ config = load_db("CFG")
 ma_de_url = st.query_params.get("de", "").strip() 
 role = st.query_params.get("role", "student")
 
-# --- KHỞI TẠO BỘ NHỚ (DÙNG ĐỂ BAY DỮ LIỆU VÀO BƯỚC 3) ---
 if 'data_step3' not in st.session_state:
     st.session_state.data_step3 = []
 if 'ver_key' not in st.session_state:
-    st.session_state.ver_key = 0 # Khóa phiên bản để ép hiển thị lại
+    st.session_state.ver_key = 0
 
 st.markdown(f'<div class="sticky-header"><div class="main-title">TOÁN LỚP 3 - THẦY THÁI</div><div class="sub-title">Hệ thống quản lý chuyên nghiệp</div></div>', unsafe_allow_html=True)
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
@@ -62,7 +61,7 @@ if role == "teacher":
             st.download_button("📥 TẢI CSV MẪU", df_m.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig'), "mau.csv", "text/csv", use_container_width=True)
             
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📤 UPLOAD ĐỀ</span>', unsafe_allow_html=True)
-            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="file_up_v10")
+            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="file_up_final")
             
             if up_f is not None:
                 raw = up_f.getvalue()
@@ -72,15 +71,12 @@ if role == "teacher":
                         df_u = df_u.dropna(how='all')
                         newList = []
                         for idx, r in df_u.iterrows():
-                            # Bỏ qua dòng tiêu đề
                             if any(x in str(r[0]).lower() for x in ["stt", "câu", "cau"]): continue
                             q_v = f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) else str(r[2])
                             newList.append({"q": q_v, "a": str(r[3]) if len(r) > 3 else ""})
-                        
                         if newList:
                             st.session_state.data_step3 = newList
-                            st.session_state.ver_key += 1 # Tăng khóa phiên bản để ép reset ô soạn thảo
-                            st.toast(f"✅ Đã tải {len(newList)} câu!")
+                            st.session_state.ver_key += 1
                         break
                     except: continue
         st.markdown('</div>', unsafe_allow_html=True)
@@ -89,26 +85,50 @@ if role == "teacher":
         if pwd == "thai2026":
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("📝 QUẢN LÝ NỘI DUNG")
-            de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list(library.keys()))
+            
+            # --- CHỈNH SỬA VỊ TRÍ 1: CHỌN ĐỀ CŨ ---
+            list_de = list(library.keys())
+            de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list_de)
             
             if de_chon != "-- Tạo mới --" and not st.session_state.data_step3:
                 st.session_state.data_step3 = library.get(de_chon, [])
                 st.session_state.ver_key += 1
 
             st.divider()
-            m_de = st.text_input("👉 Bước 1: Nhập Mã đề bài:", value=de_chon if de_chon != "-- Tạo mới --" else "").strip()
             
-            if m_de:
+            # --- CHỈNH SỬA VỊ TRÍ 2: BƯỚC 1 HIỂN THỊ DANH SÁCH ĐỀ ĐÃ LƯU ---
+            st.markdown("👉 **Bước 1: Nhập hoặc Chọn Mã đề bài từ danh sách:**")
+            m_de = st.selectbox("Chọn mã đề đã lưu:", options=[""] + list_de, label_visibility="collapsed") if not de_chon or de_chon == "-- Tạo mới --" else de_chon
+            m_de_manual = st.text_input("Hoặc nhập mã đề mới tại đây:", value=m_de).strip()
+            final_m_de = m_de_manual if m_de_manual else m_de
+
+            if final_m_de:
                 st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
-                clean_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
+                # SỬA LỖI COPY BAD REQUEST: Dùng URL trực tiếp không qua redirect
+                clean_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={final_m_de}"
                 st.markdown(f'<div class="link-box">{clean_url}</div>', unsafe_allow_html=True)
-                st.write(f"""<button onclick='navigator.clipboard.writeText("{clean_url}"); alert("✅ Đã copy!")' style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📋 NHẤN ĐỂ COPY LINK</button>""", unsafe_allow_html=True)
+                
+                # JavaScript copy chuẩn hóa để tránh ký tự lạ gây lỗi 400
+                st.write(f"""
+                <script>
+                function copyLink() {{
+                    const el = document.createElement('textarea');
+                    el.value = "{clean_url}";
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    alert("✅ Đã copy link!");
+                }}
+                </script>
+                <button onclick="copyLink()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📋 NHẤN ĐỂ COPY LINK</button>
+                """, unsafe_allow_html=True)
 
             st.divider()
             
-            # --- YÊU CẦU: NÚT LƯU TRÊN DÒNG BƯỚC 3 ---
+            # --- CHỈNH SỬA VỊ TRÍ 3: NÚT LƯU TRÊN DÒNG BƯỚC 3 ---
             if st.button("🚀 NHẤN VÀO ĐÂY ĐỂ LƯU ĐỀ VÀ XUẤT BẢN", use_container_width=True, type="primary"):
-                if m_de:
+                if final_m_de:
                     final_qs = []
                     num_qs = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
                     for i in range(1, num_qs + 1):
@@ -116,25 +136,23 @@ if role == "teacher":
                         a_val = st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")
                         final_qs.append({"q": q_val, "a": a_val})
                     
-                    library[m_de] = final_qs
+                    library[final_m_de] = final_qs
                     save_db("LIB", library)
                     st.session_state.data_step3 = []
-                    st.success("Đã lưu thành công!")
+                    st.success(f"Đã lưu thành công đề: {final_m_de}")
                     st.rerun()
+                else:
+                    st.error("Vui lòng nhập Mã đề!")
 
-            st.markdown("**👉 Bước 3: Soạn thảo và Lưu bài (Dữ liệu tự động hiện bên dưới):**")
-            
+            st.markdown("**👉 Bước 3: Soạn thảo và Lưu bài:**")
             total_qs = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
             num_q = st.number_input("Số câu hiện có:", 1, 1000, value=total_qs, key=f"num_{st.session_state.ver_key}")
 
-            # HIỂN THỊ CÂU HỎI
             for i in range(1, num_q + 1):
                 vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
                 va = st.session_state.data_step3[i-1]["a"] if i <= len(st.session_state.data_step3) else ""
-                
                 st.markdown(f"**Câu {i}**")
-                # Dùng ver_key trong key để ép Streamlit phải cập nhật giá trị mới từ file
-                st.text_input(f"Câu {i}", value=vq, key=f"q_{st.session_state.ver_key}_{i}", label_visibility="collapsed")
+                st.text_input(f"Q_{i}", value=vq, key=f"q_{st.session_state.ver_key}_{i}", label_visibility="collapsed")
                 st.text_input(f"Đáp án", value=va, key=f"a_{st.session_state.ver_key}_{i}")
                 st.markdown("---")
             st.markdown('</div>', unsafe_allow_html=True)
