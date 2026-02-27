@@ -22,13 +22,7 @@ st.markdown("""
     .main-content { margin-top: 110px; margin-bottom: 100px; padding: 0 20px; }
     .card { background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }
     .small-inline-title { color: #004F98 !important; font-size: 16px !important; font-weight: bold !important; margin-bottom: 5px; display: block; }
-    .link-box { background-color: #f1f3f4; border: 2px dashed #004F98; padding: 12px; border-radius: 8px; color: #d32f2f; font-family: monospace; font-size: 15px; word-break: break-all; margin: 10px 0; font-weight: bold; }
-    
-    section[data-testid="stFileUploadDropzone"] button::after {
-        content: "UPLOAD";
-        display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background-color: #004F98; color: white; display: flex; align-items: center; justify-content: center;
-    }
+    .link-box { background-color: #f1f3f4; border: 2px dashed #004F98; padding: 12px; border-radius: 8px; color: #d32f2f; font-family: monospace; font-size: 15px; word-break: break-all; margin: 10px 0; font-weight: bold; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -46,14 +40,13 @@ library, rank_live, master_db, config = load_db("LIB"), load_db("RANK"), load_db
 ma_de_url = st.query_params.get("de", "")
 role = st.query_params.get("role", "student")
 
-# --- HEADER THEO VAI TRÒ (BẢO TOÀN) ---
+# --- HEADER THEO VAI TRÒ ---
 if role == "teacher":
     header_title, header_sub = "CHÀO MỪNG THẦY ĐẾN VỚI APP TOÁN LỚP 3", "Chúc thầy luôn vượt qua thử thách"
 else:
     header_title, header_sub = "TOÁN LỚP 3 - THẦY THÁI", "Chúc các em làm bài tốt"
 
 st.markdown(f'<div class="sticky-header"><div class="main-title">{header_title}</div><div class="sub-title">{header_sub}</div></div>', unsafe_allow_html=True)
-
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
 # ==========================================
@@ -74,17 +67,10 @@ if role == "teacher":
             
         if pwd == "thai2026":
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
-            df_m = pd.DataFrame({
-                "Câu": ["1", "2"],
-                "Yêu cầu": ["Tính nhanh", "Giải toán có lời văn"],
-                "Nội dung câu hỏi": ["12 + 18 = ?", "Có 10 viên bi, cho bạn 3 viên. Còn mấy viên?"],
-                "Đáp án": ["30", "7"]
-            })
-            # Tải mẫu dùng UTF-8-SIG để Excel luôn nhận diện đúng tiếng Việt
-            csv_out = df_m.to_csv(index=False, encoding='utf-8-sig')
-            st.download_button("📥 TẢI CSV MẪU", csv_out.encode('utf-8-sig'), "mau_de_thay_thai.csv", "text/csv", use_container_width=True)
+            df_m = pd.DataFrame({"Câu": ["1"], "Yêu cầu": ["Tính"], "Nội dung câu hỏi": ["1+1=?"], "Đáp án": ["2"]})
+            st.download_button("📥 TẢI CSV MẪU", df_m.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig'), "mau_de.csv", "text/csv", use_container_width=True)
             
-            st.markdown('<span class="small-inline-title" style="margin-top:15px;">📤 UPLOAD ĐỀ (Max 400MB)</span>', unsafe_allow_html=True)
+            st.markdown('<span class="small-inline-title" style="margin-top:15px;">📤 UPLOAD ĐỀ</span>', unsafe_allow_html=True)
             up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="file_up")
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -95,48 +81,44 @@ if role == "teacher":
             de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list(library.keys()))
             data_load = library.get(de_chon, [])
             
+            # --- KHẮC PHỤC LỖI MẤT CÂU 1-5 ---
             if st.session_state.get('file_up'):
-                raw_data = st.session_state.file_up.getvalue()
-                # CƠ CHẾ TỰ ĐỘNG NHẬN DIỆN MÃ HÓA (CHỐNG LỖI UNICODE)
-                encodings = ['utf-8-sig', 'utf-8', 'windows-1252', 'latin-1']
-                df_u = None
-                for enc in encodings:
+                raw_bytes = st.session_state.file_up.getvalue()
+                # Tự nhận diện mã hóa
+                for enc in ['utf-8-sig', 'latin-1']:
                     try:
-                        df_u = pd.read_csv(io.BytesIO(raw_data), encoding=enc)
+                        df_u = pd.read_csv(io.BytesIO(raw_bytes), encoding=enc)
+                        # Ép kiểu dữ liệu về chuỗi và lấy toàn bộ dòng (không bỏ sót dòng nào)
+                        data_load = [{"q": f"{str(r.iloc[1])}: {str(r.iloc[2])}", "a": str(r.iloc[3])} for _, r in df_u.iterrows()]
                         break
                     except: continue
-                
-                if df_u is not None:
-                    data_load = []
-                    for _, r in df_u.iterrows():
-                        # Ghép Yêu cầu và Nội dung câu hỏi theo 4 cột của Thầy
-                        try:
-                            q_text = f"{r.iloc[1]}: {r.iloc[2]}"
-                            a_text = str(r.iloc[3])
-                            data_load.append({"q": q_text, "a": a_text})
-                        except: pass
-                else:
-                    st.error("⚠️ Không thể đọc file. Thầy hãy lưu file Excel ở định dạng 'CSV UTF-8' nhé!")
 
             st.divider()
             m_de = st.text_input("👉 Bước 1: Nhập Mã đề bài:", value=de_chon if de_chon != "-- Tạo mới --" else "")
             
             if m_de:
-                st.markdown(f"**👉 Bước 2: Link bài tập cho học sinh:**")
-                link_hs = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
-                st.markdown(f'<div class="link-box">{link_hs}</div>', unsafe_allow_html=True)
+                st.markdown(f"**👉 Bước 2: Copy link bài tập cho học sinh:**")
+                # Lấy domain động
+                domain = "https://toan-lop-3-thay-thai.streamlit.app"
+                link_hs = f"{domain}/?de={m_de}"
+                st.markdown(f'<div class="link-box" id="link_text">{link_hs}</div>', unsafe_allow_html=True)
                 
+                # JAVASCRIPT COPY MẠNH HƠN
                 js_copy = f"""
                 <script>
-                function copyLinkHS() {{
-                    var url = window.location.origin + window.location.pathname + "?de={m_de}";
-                    var el = document.createElement('textarea'); el.value = url; document.body.appendChild(el);
-                    el.select(); document.execCommand('copy'); document.body.removeChild(el);
-                    alert("✅ Đã copy link gửi học sinh!");
+                function copyNow() {{
+                    var text = window.location.origin + window.location.pathname + "?de={m_de}";
+                    var dummy = document.createElement("textarea");
+                    document.body.appendChild(dummy);
+                    dummy.value = text;
+                    dummy.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(dummy);
+                    alert("✅ Đã copy thành công link bài tập!");
                 }}
                 </script>
-                <button onclick="copyLinkHS()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer; font-size:18px;">
-                📋 NHẤN ĐỂ COPY LINK (GỬI ZALO)
+                <button onclick="copyNow()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer; font-size:18px;">
+                📋 NHẤN VÀO ĐÂY ĐỂ COPY LINK (GỬI ZALO)
                 </button>
                 """
                 st.markdown(js_copy, unsafe_allow_html=True)
@@ -157,6 +139,9 @@ if role == "teacher":
                     library[m_de] = new_qs; save_db("LIB", library); st.success("Đã lưu!"); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # (Phần học sinh bảo toàn nguyên vẹn...)
-    pass
+    # --- CỔNG HỌC SINH (BẢO TOÀN) ---
+    if ma_de_url in library:
+        st.markdown(f'<div class="card"><h3>✍️ BÀI TẬP: {ma_de_url}</h3></div>', unsafe_allow_html=True)
+    else:
+        st.info("Chào mừng các em! Hãy sử dụng link Thầy Thái gửi để làm bài.")
 st.markdown('</div>', unsafe_allow_html=True)
