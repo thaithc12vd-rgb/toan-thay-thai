@@ -6,12 +6,10 @@ from datetime import datetime
 # --- 1. CẤU HÌNH GIAO DIỆN & XỬ LÝ LINK ---
 st.set_page_config(page_title="Toan Lop 3 - Thay Thai", layout="wide")
 
-# Lấy tham số từ URL
 query_params = st.query_params
 ma_de_url = query_params.get("de", "")
 role = query_params.get("role", "student")
 
-# Thiết lập nội dung tiêu đề
 if role == "teacher":
     display_title = "HỆ THỐNG QUẢN LÝ CÂU HỎI YOUTUBE"
     display_subtitle = "Chúc thầy vượt qua mọi thử thách"
@@ -34,20 +32,24 @@ st.markdown(f"""
     .main-content {{ margin-top: 110px; margin-bottom: 80px; padding: 0 20px; }}
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
     
-    /* CHỮ KÝ CỐ ĐỊNH KHÔNG DI CHUYỂN KHI LĂN CHUỘT */
-    .fixed-footer {{
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background-color: #C5D3E8;
-        color: #004F98;
-        text-align: center;
-        padding: 10px 0;
+    /* KHUNG ĐANG LÀM ĐỀ NHỎ GỌN - NỀN TỐI PHONG THỦY */
+    .mini-quiz-box {{
+        background-color: #1A2238; 
+        color: #FFD700; 
+        padding: 5px 15px; 
+        border-radius: 20px; 
+        display: inline-block; 
+        font-size: 12px; 
         font-weight: bold;
-        font-size: 14px;
-        z-index: 1001;
-        border-top: 1px solid rgba(0,79,152,0.1);
+        margin-bottom: 10px;
+        border: 1px solid #FFD700;
+    }}
+
+    .fixed-footer {{
+        position: fixed; bottom: 0; left: 0; width: 100%;
+        background-color: #C5D3E8; color: #004F98;
+        text-align: center; padding: 10px 0; font-weight: bold;
+        font-size: 14px; z-index: 1001; border-top: 1px solid rgba(0,79,152,0.1);
     }}
 </style>
 <div class="sticky-header">
@@ -113,7 +115,6 @@ if role == "teacher":
             st.markdown('<div class="card">', unsafe_allow_html=True)
             list_de = list(library.keys())
             de_chon = st.selectbox("📂 Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list_de, key="sel_de")
-            
             if de_chon != "-- Tạo mới --" and st.session_state.get('last_de') != de_chon:
                 st.session_state.data_step3 = library.get(de_chon, [])
                 st.session_state.last_de = de_chon
@@ -124,11 +125,10 @@ if role == "teacher":
             m_de = st.text_input("👉 Bước 1: Nhập Mã đề bài:", value=de_chon if de_chon != "-- Tạo mới --" else "").strip()
             
             if m_de:
-                st.markdown("**👉 Bước 2: Bôi đen dòng dưới đây để Copy gửi cho học sinh:**")
+                st.markdown("**👉 Bước 2: Bôi đen dòng dưới đây để Copy:**")
                 base_url = "https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/"
                 final_link = f"{base_url}?de={m_de}"
                 st.text_input("Link bài tập:", value=final_link, key="link_out", label_visibility="collapsed")
-                st.caption("Nháy đúp chuột vào ô trên để chọn toàn bộ link rồi nhấn Copy.")
 
             st.divider()
             if st.button("🚀 LƯU ĐỀ VÀO KHO & XUẤT BẢN", use_container_width=True, type="primary"):
@@ -147,7 +147,6 @@ if role == "teacher":
             st.markdown("**👉 Bước 3: Soạn thảo nội dung:**")
             count_data = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
             num_q = st.number_input("Số câu hiện có:", 1, 100, value=count_data, key=f"num_{st.session_state.ver_key}")
-
             for i in range(1, num_q + 1):
                 vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
                 va = st.session_state.data_step3[i-1]["a"] if i <= len(st.session_state.data_step3) else ""
@@ -157,34 +156,63 @@ if role == "teacher":
                 st.markdown("---")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # --- PHẦN HIỂN THỊ CHO HỌC SINH ---
+    # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url and ma_de_url in library:
-        st.markdown(f'<div class="card"><h3>✍️ ĐANG LÀM ĐỀ: {ma_de_url}</h3></div>', unsafe_allow_html=True)
+        # Khung thông tin đề nhỏ gọn, nền tối
+        st.markdown(f'<div style="text-align:center;"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
+        st.divider()
+
         st.markdown('<div class="card">', unsafe_allow_html=True)
         student_name = st.text_input("Bước 1: Nhập tên của em để hiện đề bài:", key="student_name").strip()
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # CHỈ HIỆN CÂU HỎI KHI ĐÃ NHẬP TÊN
         if student_name:
             st.success(f"Chào {student_name}! Mời em bắt đầu làm bài.")
             answers = {}
-            for idx, item in enumerate(library[ma_de_url], 1):
+            quiz_data = library[ma_de_url]
+            for idx, item in enumerate(quiz_data, 1):
                 st.markdown(f'<div class="card"><b>Câu {idx}:</b> {item["q"]}</div>', unsafe_allow_html=True)
                 answers[f"Câu {idx}"] = st.text_input(f"Trả lời câu {idx}:", key=f"ans_{idx}", label_visibility="collapsed")
             
             if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
+                # Chấm điểm
+                correct_count = 0
+                for idx, item in enumerate(quiz_data, 1):
+                    user_ans = str(answers.get(f"Câu {idx}", "")).strip().lower()
+                    real_ans = str(item["a"]).strip().lower()
+                    if user_ans == real_ans: correct_count += 1
+                
+                score = round((correct_count / len(quiz_data)) * 10, 1)
+                
+                # Lưu kết quả
                 results = load_db(RESULT_PATH)
                 submission = {
-                    "time": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                    "time": datetime.now().strftime("%H:%M:%S"),
                     "student": student_name,
                     "quiz": ma_de_url,
-                    "answers": answers
+                    "score": score
                 }
                 if ma_de_url not in results: results[ma_de_url] = []
                 results[ma_de_url].append(submission)
                 save_db(RESULT_PATH, results)
+                
                 st.balloons()
-                st.success(f"Bài làm của {student_name} đã được gửi tới Thầy Thái!")
+                st.markdown(f"""<div class="card" style="text-align:center; border-top:8px solid #FFD700;">
+                    <h2 style="color:#004F98;">KẾT QUẢ CỦA {student_name.upper()}</h2>
+                    <h1 style="font-size:60px; color:#d32f2f;">{score} / 10</h1>
+                    <p>Em làm đúng {correct_count}/{len(quiz_data)} câu</p>
+                </div>""", unsafe_allow_html=True)
+
+            # HIỂN THỊ DANH SÁCH LIVE CÁC BẠN ĐANG LÀM/ĐÃ NỘP
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown("### 🟢 DANH SÁCH CÁC BẠN ĐÃ HOÀN THÀNH")
+            all_res = load_db(RESULT_PATH).get(ma_de_url, [])
+            if all_res:
+                df_res = pd.DataFrame(all_res).sort_index(ascending=False)
+                st.table(df_res[["time", "student", "score"]].rename(columns={"time":"Giờ nộp", "student":"Học sinh", "score":"Điểm"}))
+            else:
+                st.write("Chưa có bạn nào nộp bài, em hãy là người đầu tiên!")
+            st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.warning("Em hãy nhập tên ở trên để xem câu hỏi nhé!")
     else:
