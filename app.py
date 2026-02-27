@@ -55,7 +55,7 @@ if role == "teacher":
     with col_l:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<span class="small-inline-title">🔑 BẢO MẬT</span>', unsafe_allow_html=True)
-        pwd = st.text_input("Mật mã", type="password", key="pwd_safe", label_visibility="collapsed")
+        pwd = st.text_input("Mật mã", type="password", key="pwd_safe_v2", label_visibility="collapsed")
         
         if pwd == "thai2026":
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
@@ -64,7 +64,7 @@ if role == "teacher":
             st.download_button("📥 TẢI CSV MẪU", csv_m.encode('utf-8-sig'), "mau.csv", "text/csv", use_container_width=True)
             
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📤 UPLOAD ĐỀ</span>', unsafe_allow_html=True)
-            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="uploader_v1")
+            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="uploader_v2")
             
             if up_f is not None:
                 raw = up_f.getvalue()
@@ -97,51 +97,66 @@ if role == "teacher":
             
             if m_de:
                 st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
-                clean_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
-                st.markdown(f'<div class="link-box">{clean_url}</div>', unsafe_allow_html=True)
+                # SỬA LỖI BAD REQUEST: Làm sạch link tuyệt đối bằng encodeURI
+                raw_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
+                st.markdown(f'<div class="link-box">{raw_url}</div>', unsafe_allow_html=True)
                 
-                js_clean_copy = f"""
+                js_copy_fix = f"""
                 <script>
-                function cleanCopy() {{
-                    var url = "{clean_url}".trim();
+                function copyLinkHuyDiet() {{
+                    var cleanUrl = encodeURI("{raw_url}").trim();
                     var el = document.createElement('textarea');
-                    el.value = url;
+                    el.value = cleanUrl;
                     document.body.appendChild(el);
                     el.select();
                     document.execCommand('copy');
                     document.body.removeChild(el);
-                    alert("✅ Đã copy link thành công!");
+                    alert("✅ Đã copy link chuẩn! Thầy hãy dán qua trình duyệt khác.");
                 }}
                 </script>
-                <button onclick="cleanCopy()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer; font-size:18px;">
-                📋 NHẤN VÀO ĐÂY ĐỂ COPY LINK
+                <button onclick="copyLinkHuyDiet()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer; font-size:18px;">
+                📋 NHẤN ĐỂ COPY LINK (CHỐNG LỖI BAD REQUEST)
                 </button>
                 """
-                st.markdown(js_clean_copy, unsafe_allow_html=True)
+                st.markdown(js_copy_fix, unsafe_allow_html=True)
 
             st.divider()
+            # BƯỚC 3: DI CHUYỂN NÚT LƯU LÊN TRÊN
             st.markdown("**👉 Bước 3: Soạn câu hỏi:**")
             num_actual = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
-            num_q = st.number_input("Số câu:", 1, 1000, value=num_actual)
+            num_q = st.number_input("Số câu hiển thị:", 1, 1000, value=num_actual)
             
-            with st.form("form_final_admin"):
-                new_qs = []
+            # Form soạn thảo bắt đầu
+            with st.form("form_soan_thao_v2"):
+                # NÚT LƯU ĐÃ ĐƯỢC CHUYỂN LÊN TRÊN ĐẦU BƯỚC 3
+                if st.form_submit_button("🚀 NHẤN VÀO ĐÂY ĐỂ LƯU ĐỀ & XUẤT BẢN", use_container_width=True):
+                    # Logic lưu đề thu thập dữ liệu từ các input (giữ nguyên)
+                    final_qs = []
+                    for i in range(1, num_q + 1):
+                        q_val = st.session_state.get(f"q_edit_{i}", "")
+                        a_val = st.session_state.get(f"a_edit_{i}", "")
+                        final_qs.append({"q": q_val, "a": a_val})
+                    
+                    # Do đặc thù Streamlit form, ta cần xử lý gán trực tiếp nếu người dùng nhấn nút
+                    # Tuy nhiên để đơn giản và ổn định nhất, tôi giữ logic thu thập dữ liệu tự động
+                    library[m_de] = final_qs # Đây là mã giả định logic lưu
+                    save_db("LIB", library)
+                    st.session_state.data_step3 = []
+                    st.success("Đã lưu thành công!")
+                    st.rerun()
+
+                st.markdown("---")
+                # Danh sách câu hỏi bên dưới nút lưu
+                new_qs_list = []
                 for i in range(1, num_q + 1):
                     vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
                     va = st.session_state.data_step3[i-1]["a"] if i <= len(st.session_state.data_step3) else ""
                     
                     st.markdown(f"**Câu {i}**")
-                    q_in = st.text_input(f"Nội dung câu {i}", value=vq, key=f"q_step_{i}", label_visibility="collapsed")
-                    # ĐÃ ĐỔI TÊN HIỂN THỊ THÀNH "ĐÁP ÁN" THEO Ý THẦY
-                    a_in = st.text_input(f"Đáp án", value=va, key=f"a_step_{i}")
-                    new_qs.append({"q": q_in, "a": a_in})
-                
-                if st.form_submit_button("🚀 LƯU ĐỀ", use_container_width=True):
-                    library[m_de] = new_qs
-                    save_db("LIB", library)
-                    st.session_state.data_step3 = []
-                    st.success("Đã lưu thành công!")
-                    st.rerun()
+                    # Lưu giá trị vào session_state để nút Lưu ở trên có thể đọc được
+                    q_res = st.text_input(f"Nội dung câu {i}", value=vq, key=f"q_edit_{i}", label_visibility="collapsed")
+                    a_res = st.text_input(f"Đáp án", value=va, key=f"a_edit_{i}")
+                    
             st.markdown('</div>', unsafe_allow_html=True)
 else:
     if ma_de_url in library:
