@@ -37,15 +37,14 @@ def save_db(k, d):
 
 library = load_db("LIB")
 config = load_db("CFG")
-ma_de_url = st.query_params.get("de", "")
-# Bảo mật: không lưu mật mã vào URL hoặc session
+ma_de_url = st.query_params.get("de", "").strip() # Làm sạch mã đề khỏi khoảng trắng
 role = st.query_params.get("role", "student")
 
-# --- KHỞI TẠO BỘ NHỚ TẠM THỜI CHO DỮ LIỆU ---
+# --- KHỞI TẠO BỘ NHỚ TẠM THỜI ---
 if 'data_step3' not in st.session_state:
     st.session_state.data_step3 = []
 
-# --- HEADER PHÂN BIỆT THẦY/TRÒ ---
+# --- HEADER PHÂN BIỆT ---
 h_title = "CHÀO MỪNG THẦY ĐẾN VỚI APP TOÁN LỚP 3" if role == "teacher" else "TOÁN LỚP 3 - THẦY THÁI"
 h_sub = "Chúc thầy luôn vượt qua thử thách" if role == "teacher" else "Chúc các em làm bài tốt"
 
@@ -57,8 +56,7 @@ if role == "teacher":
     with col_l:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<span class="small-inline-title">🔑 BẢO MẬT</span>', unsafe_allow_html=True)
-        # Mật mã không tự động điền, không lưu lại
-        pwd = st.text_input("Mật mã", type="password", key="pwd_input", label_visibility="collapsed")
+        pwd = st.text_input("Mật mã", type="password", key="pwd_no_save", label_visibility="collapsed")
         
         if pwd == "thai2026":
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
@@ -67,7 +65,7 @@ if role == "teacher":
             st.download_button("📥 TẢI CSV MẪU", csv_m.encode('utf-8-sig'), "mau.csv", "text/csv", use_container_width=True)
             
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📤 UPLOAD ĐỀ</span>', unsafe_allow_html=True)
-            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="uploader")
+            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed")
             
             if up_f is not None:
                 raw = up_f.getvalue()
@@ -75,15 +73,13 @@ if role == "teacher":
                     try:
                         df_u = pd.read_csv(io.BytesIO(raw), encoding=enc, header=None)
                         df_u = df_u.dropna(how='all')
-                        temp_list = []
+                        newList = []
                         for idx, r in df_u.iterrows():
                             if any(x in str(r[0]).lower() for x in ["stt", "câu", "cau"]): continue
-                            q_val = f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) else str(r[2])
-                            a_val = str(r[3]) if len(r) > 3 else ""
-                            temp_list.append({"q": q_val, "a": a_val})
-                        if temp_list:
-                            st.session_state.data_step3 = temp_list
-                            st.success(f"✅ Đã tải {len(temp_list)} câu!")
+                            q_v = f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) else str(r[2])
+                            newList.append({"q": q_v, "a": str(r[3]) if len(r) > 3 else ""})
+                        if newList:
+                            st.session_state.data_step3 = newList
                         break
                     except: continue
         st.markdown('</div>', unsafe_allow_html=True)
@@ -91,65 +87,63 @@ if role == "teacher":
     with col_r:
         if pwd == "thai2026":
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("📝 QUẢN LÝ NỘI DUNG ĐỀ BÀI")
+            st.subheader("📝 QUẢN LÝ NỘI DUNG")
             de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list(library.keys()))
-            
             if de_chon != "-- Tạo mới --" and not st.session_state.data_step3:
                 st.session_state.data_step3 = library.get(de_chon, [])
 
             st.divider()
-            m_de = st.text_input("👉 Bước 1: Nhập Mã đề bài:", value=de_chon if de_chon != "-- Tạo mới --" else "")
+            m_de = st.text_input("👉 Bước 1: Nhập Mã đề bài:", value=de_chon if de_chon != "-- Tạo mới --" else "").strip()
             
             if m_de:
                 st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
-                # LẤY LINK CHÍNH XÁC TUYỆT ĐỐI
-                full_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
-                st.markdown(f'<div class="link-box" id="copy_target">{full_url}</div>', unsafe_allow_html=True)
+                # LÀM SẠCH LINK TUYỆT ĐỐI ĐỂ TRÁNH BAD REQUEST
+                clean_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
+                st.markdown(f'<div class="link-box">{clean_url}</div>', unsafe_allow_html=True)
                 
-                # JAVASCRIPT COPY "ÉP BUỘC" (BỎ QUA BẢO MẬT TRÌNH DUYỆT)
-                js_copy = f"""
+                # JAVASCRIPT COPY "LÀM SẠCH" KÝ TỰ RÁC
+                js_final_copy = f"""
                 <script>
-                function clickCopy() {{
-                    var textToCopy = "{full_url}";
-                    var tempInput = document.createElement("textarea");
-                    tempInput.value = textToCopy;
-                    document.body.appendChild(tempInput);
-                    tempInput.select();
-                    document.execCommand("copy");
-                    document.body.removeChild(tempInput);
-                    alert("✅ Thầy đã copy link thành công! Bây giờ hãy dán qua Zalo.");
+                function cleanCopy() {{
+                    var url = "{clean_url}".trim();
+                    var el = document.createElement('textarea');
+                    el.value = url;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    alert("✅ Đã copy link sạch! Thầy hãy dán qua trình duyệt khác.");
                 }}
                 </script>
-                <button onclick="clickCopy()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer; font-size:18px;">
-                📋 NHẤN VÀO ĐÂY ĐỂ COPY LINK (GỬI ZALO)
+                <button onclick="cleanCopy()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer; font-size:18px;">
+                📋 NHẤN VÀO ĐÂY ĐỂ COPY LINK (CHỐNG LỖI BAD REQUEST)
                 </button>
                 """
-                st.markdown(js_copy, unsafe_allow_html=True)
+                st.markdown(js_final_copy, unsafe_allow_html=True)
 
             st.divider()
-            st.markdown("**👉 Bước 3: Soạn câu hỏi (Dữ liệu tự đổ từ File):**")
-            total = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
-            num_q = st.number_input("Số câu hiện có:", 1, 1000, value=total)
-
-            with st.form("admin_form_new"):
+            st.markdown("**👉 Bước 3: Soạn câu hỏi:**")
+            total = len(st.session_state.data_step3) if st.session_state.current_qs else 5
+            num_q = st.number_input("Số câu:", 1, 1000, value=total)
+            with st.form("form_final"):
                 new_qs = []
                 for i in range(1, num_q + 1):
                     vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
                     va = st.session_state.data_step3[i-1]["a"] if i <= len(st.session_state.data_step3) else ""
                     st.markdown(f"**Câu {i}**")
-                    q_in = st.text_input(f"Câu hỏi {i}", value=vq, key=f"q_final_{i}", label_visibility="collapsed")
-                    a_in = st.text_input(f"Đáp án {i}", value=va, key=f"a_final_{i}")
+                    q_in = st.text_input(f"Q{i}", value=vq, key=f"qf_{i}", label_visibility="collapsed")
+                    a_in = st.text_input(f"A{i}", value=va, key=f"af_{i}")
                     new_qs.append({"q": q_in, "a": a_in})
-                
-                if st.form_submit_button("🚀 LƯU ĐỀ & XUẤT BẢN", use_container_width=True):
+                if st.form_submit_button("🚀 LƯU ĐỀ", use_container_width=True):
                     library[m_de] = new_qs
                     save_db("LIB", library)
-                    st.session_state.data_step3 = [] # Xóa đệm sau khi lưu
-                    st.success("Đã lưu đề bài thành công!")
+                    st.session_state.data_step3 = []
+                    st.success("Đã lưu!")
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 else:
+    # PHẦN HỌC SINH (GIỮ NGUYÊN)
     if ma_de_url in library:
         st.markdown(f'<div class="card"><h3>✍️ BÀI TẬP: {ma_de_url}</h3></div>', unsafe_allow_html=True)
-    else: st.info("Chào mừng các em! Hãy sử dụng link Thầy Thái gửi.")
+    else: st.info("Chào mừng các em!")
 st.markdown('</div>', unsafe_allow_html=True)
