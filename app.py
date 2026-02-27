@@ -53,7 +53,7 @@ if role == "teacher":
     with col_l:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<span class="small-inline-title">🔑 BẢO MẬT</span>', unsafe_allow_html=True)
-        pwd = st.text_input("Mật mã", type="password", key="pwd_safe_v11", label_visibility="collapsed")
+        pwd = st.text_input("Mật mã", type="password", key="pwd_safe_v12", label_visibility="collapsed")
         
         if pwd == "thai2026":
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
@@ -61,7 +61,7 @@ if role == "teacher":
             st.download_button("📥 TẢI CSV MẪU", df_m.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig'), "mau.csv", "text/csv", use_container_width=True)
             
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📤 UPLOAD ĐỀ</span>', unsafe_allow_html=True)
-            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="file_up_v11")
+            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="file_up_v12")
             
             if up_f is not None:
                 raw = up_f.getvalue()
@@ -100,26 +100,26 @@ if role == "teacher":
 
             if final_m_de:
                 st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
-                # ĐỊA CHỈ LINK CHUẨN CỐ ĐỊNH
                 clean_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={final_m_de}"
                 st.markdown(f'<div class="link-box">{clean_url}</div>', unsafe_allow_html=True)
                 
-                # NÚT COPY ĐÃ ĐƯỢC FIX LỖI "NOT FOUND"
-                js_copy = f"""
+                # SỬA LỖI COPY TRỰC TIẾP (FIX BAD REQUEST)
+                js_final_copy = f"""
                 <script>
-                function clickCopy() {{
-                    const el = document.createElement('textarea');
-                    el.value = "{clean_url}";
-                    document.body.appendChild(el);
-                    el.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(el);
-                    alert("✅ Đã copy link thành công!");
+                function copyNow() {{
+                    var text = encodeURI("{clean_url}").trim();
+                    var dummy = document.createElement("textarea");
+                    document.body.appendChild(dummy);
+                    dummy.value = text;
+                    dummy.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(dummy);
+                    alert("✅ Đã copy link thành công! Thầy hãy dán qua trình duyệt khác.");
                 }}
                 </script>
-                <button onclick="clickCopy()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📋 NHẤN ĐỂ COPY LINK</button>
+                <button onclick="copyNow()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📋 NHẤN ĐỂ COPY LINK</button>
                 """
-                st.markdown(js_copy, unsafe_allow_html=True)
+                st.markdown(js_final_copy, unsafe_allow_html=True)
 
             st.divider()
             if st.button("🚀 NHẤN VÀO ĐÂY ĐỂ LƯU ĐỀ VÀ XUẤT BẢN", use_container_width=True, type="primary"):
