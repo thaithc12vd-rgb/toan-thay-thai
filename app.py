@@ -45,7 +45,7 @@ st.markdown(f"""
 <div class="fixed-footer">DESIGN BY TRAN HOANG THAI</div>
 """, unsafe_allow_html=True)
 
-# --- 2. BỘ MÁY BIẾN ĐỔI ĐỀ BÀI (DYNAMICS ENGINE) ---
+# --- 2. BỘ MÁY BIẾN ĐỔI ĐỀ BÀI ---
 LIST_TEN = ["An", "Bình", "Chi", "Dũng", "Yến", "Lan", "Nam", "Mai", "Cúc", "Tùng", "Linh", "Hùng", "Bắc"]
 
 def bien_doi_cau_hoi(q_text, a_text):
@@ -87,7 +87,7 @@ def cleanup_48h(results):
     now = datetime.now()
     upd = False; new_res = {}
     for de, l in results.items():
-        filtered = [r for r in l if now - datetime.strptime(r['full_time'], "%Y-%m-%d %H:%M:%S") < timedelta(hours=48)]
+        filtered = [r for r in l if now - datetime.strptime(r.get('full_time', '2000-01-01 00:00:00'), "%Y-%m-%d %H:%M:%S") < timedelta(hours=48)]
         if len(filtered) != len(l): upd = True
         new_res[de] = filtered
     if upd: save_data(RES_PATH, new_res)
@@ -97,11 +97,13 @@ library = load_data(DB_PATH)
 profiles = load_data(PROF_PATH)
 results_all = cleanup_48h(load_data(RES_PATH))
 
+# KHỞI TẠO BIẾN TRÁNH LỖI KEYERROR
 if 'is_accepted' not in st.session_state: st.session_state.is_accepted = False
 if 'is_submitted' not in st.session_state: st.session_state.is_submitted = False
 if 'cau_hoi_hien_tai' not in st.session_state: st.session_state.cau_hoi_hien_tai = []
 if 'ver_key' not in st.session_state: st.session_state.ver_key = 0
 if 'data_step3' not in st.session_state: st.session_state.data_step3 = []
+if 'student_name' not in st.session_state: st.session_state.student_name = ""
 
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
@@ -130,7 +132,6 @@ if role == "teacher":
             st.divider()
             m_de = st.text_input("👉 Bước 1: Nhập Mã đề:", value=de_chon if de_chon != "-- Tạo mới --" else "").strip()
             
-            # --- KHÔI PHỤC ĐOẠN LINK COPY ---
             if m_de:
                 st.markdown("**👉 Bước 2: Bôi đen dòng dưới đây để Copy gửi cho học sinh:**")
                 base_url = "https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/"
@@ -174,7 +175,7 @@ else:
             st.markdown('</div>', unsafe_allow_html=True)
         
         if st.session_state.is_accepted and not st.session_state.is_submitted:
-            current_name = st.session_state.student_name
+            current_name = st.session_state.get('student_name', "")
             st.success(f"Chào {current_name}!")
             answers = {}
             for idx, item in enumerate(st.session_state.cau_hoi_hien_tai, 1):
@@ -197,7 +198,8 @@ else:
                 st.session_state.final_score = score; st.session_state.is_submitted = True; st.balloons(); st.rerun()
 
         if st.session_state.is_submitted:
-            st.markdown(f'<div class="card" style="text-align:center;"><h2>KẾT QUẢ: {st.session_state.final_score}/10</h2></div>', unsafe_allow_html=True)
+            f_score = st.session_state.get('final_score', 0)
+            st.markdown(f'<div class="card" style="text-align:center;"><h2>KẾT QUẢ: {f_score}/10</h2></div>', unsafe_allow_html=True)
             res_data = cleanup_48h(load_data(RES_PATH)).get(ma_de_url, [])
             if res_data:
                 df = pd.DataFrame(res_data).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
