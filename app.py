@@ -53,7 +53,7 @@ if role == "teacher":
     with col_l:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<span class="small-inline-title">🔑 BẢO MẬT</span>', unsafe_allow_html=True)
-        pwd = st.text_input("Mật mã", type="password", key="pwd_teacher_safe", label_visibility="collapsed")
+        pwd = st.text_input("Mật mã", type="password", key="pwd_safe_v11", label_visibility="collapsed")
         
         if pwd == "thai2026":
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
@@ -61,7 +61,7 @@ if role == "teacher":
             st.download_button("📥 TẢI CSV MẪU", df_m.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig'), "mau.csv", "text/csv", use_container_width=True)
             
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📤 UPLOAD ĐỀ</span>', unsafe_allow_html=True)
-            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="file_up_final")
+            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="file_up_v11")
             
             if up_f is not None:
                 raw = up_f.getvalue()
@@ -85,8 +85,6 @@ if role == "teacher":
         if pwd == "thai2026":
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("📝 QUẢN LÝ NỘI DUNG")
-            
-            # --- CHỈNH SỬA VỊ TRÍ 1: CHỌN ĐỀ CŨ ---
             list_de = list(library.keys())
             de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list_de)
             
@@ -95,54 +93,49 @@ if role == "teacher":
                 st.session_state.ver_key += 1
 
             st.divider()
-            
-            # --- CHỈNH SỬA VỊ TRÍ 2: BƯỚC 1 HIỂN THỊ DANH SÁCH ĐỀ ĐÃ LƯU ---
             st.markdown("👉 **Bước 1: Nhập hoặc Chọn Mã đề bài từ danh sách:**")
-            m_de = st.selectbox("Chọn mã đề đã lưu:", options=[""] + list_de, label_visibility="collapsed") if not de_chon or de_chon == "-- Tạo mới --" else de_chon
-            m_de_manual = st.text_input("Hoặc nhập mã đề mới tại đây:", value=m_de).strip()
-            final_m_de = m_de_manual if m_de_manual else m_de
+            m_de_sel = st.selectbox("Chọn mã đề đã lưu:", options=[""] + list_de, label_visibility="collapsed")
+            m_de_input = st.text_input("Hoặc nhập mã đề mới tại đây:", value=m_de_sel if m_de_sel else (de_chon if de_chon != "-- Tạo mới --" else "")).strip()
+            final_m_de = m_de_input if m_de_input else m_de_sel
 
             if final_m_de:
                 st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
-                # SỬA LỖI COPY BAD REQUEST: Dùng URL trực tiếp không qua redirect
+                # ĐỊA CHỈ LINK CHUẨN CỐ ĐỊNH
                 clean_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={final_m_de}"
                 st.markdown(f'<div class="link-box">{clean_url}</div>', unsafe_allow_html=True)
                 
-                # JavaScript copy chuẩn hóa để tránh ký tự lạ gây lỗi 400
-                st.write(f"""
+                # NÚT COPY ĐÃ ĐƯỢC FIX LỖI "NOT FOUND"
+                js_copy = f"""
                 <script>
-                function copyLink() {{
+                function clickCopy() {{
                     const el = document.createElement('textarea');
                     el.value = "{clean_url}";
                     document.body.appendChild(el);
                     el.select();
                     document.execCommand('copy');
                     document.body.removeChild(el);
-                    alert("✅ Đã copy link!");
+                    alert("✅ Đã copy link thành công!");
                 }}
                 </script>
-                <button onclick="copyLink()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📋 NHẤN ĐỂ COPY LINK</button>
-                """, unsafe_allow_html=True)
+                <button onclick="clickCopy()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📋 NHẤN ĐỂ COPY LINK</button>
+                """
+                st.markdown(js_copy, unsafe_allow_html=True)
 
             st.divider()
-            
-            # --- CHỈNH SỬA VỊ TRÍ 3: NÚT LƯU TRÊN DÒNG BƯỚC 3 ---
             if st.button("🚀 NHẤN VÀO ĐÂY ĐỂ LƯU ĐỀ VÀ XUẤT BẢN", use_container_width=True, type="primary"):
                 if final_m_de:
                     final_qs = []
-                    num_qs = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
-                    for i in range(1, num_qs + 1):
-                        q_val = st.session_state.get(f"q_{st.session_state.ver_key}_{i}", "")
-                        a_val = st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")
-                        final_qs.append({"q": q_val, "a": a_val})
-                    
+                    total_qs = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
+                    for i in range(1, total_qs + 1):
+                        q_v = st.session_state.get(f"q_{st.session_state.ver_key}_{i}", "")
+                        a_v = st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")
+                        final_qs.append({"q": q_v, "a": a_v})
                     library[final_m_de] = final_qs
                     save_db("LIB", library)
                     st.session_state.data_step3 = []
                     st.success(f"Đã lưu thành công đề: {final_m_de}")
                     st.rerun()
-                else:
-                    st.error("Vui lòng nhập Mã đề!")
+                else: st.error("Vui lòng nhập Mã đề!")
 
             st.markdown("**👉 Bước 3: Soạn thảo và Lưu bài:**")
             total_qs = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
