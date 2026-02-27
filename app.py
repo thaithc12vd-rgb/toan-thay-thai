@@ -29,19 +29,23 @@ st.markdown(f"""
     }}
     .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
     .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
-    .main-content {{ margin-top: 110px; margin-bottom: 80px; padding: 0 20px; }}
+    
+    /* ĐẨY NỘI DUNG CHÍNH LÊN SÁT HEADER HƠN */
+    .main-content {{ margin-top: 100px; margin-bottom: 80px; padding: 0 20px; }}
+    
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
     
-    /* KHUNG ĐANG LÀM ĐỀ NHỎ GỌN - NỀN TỐI PHONG THỦY */
+    /* KHUNG ĐANG LÀM ĐỀ NHỎ GỌN - DỊCH LÊN SÁT */
     .mini-quiz-box {{
         background-color: #1A2238; 
         color: #FFD700; 
-        padding: 5px 15px; 
-        border-radius: 20px; 
+        padding: 4px 12px; 
+        border-radius: 15px; 
         display: inline-block; 
-        font-size: 12px; 
+        font-size: 11px; 
         font-weight: bold;
-        margin-bottom: 10px;
+        margin-top: -15px;
+        margin-bottom: 5px;
         border: 1px solid #FFD700;
     }}
 
@@ -51,6 +55,9 @@ st.markdown(f"""
         text-align: center; padding: 10px 0; font-weight: bold;
         font-size: 14px; z-index: 1001; border-top: 1px solid rgba(0,79,152,0.1);
     }}
+    
+    /* THU HẸP KHOẢNG CÁCH ĐƯỜNG GẠCH NGANG */
+    hr {{ margin: 5px 0 !important; }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -158,7 +165,7 @@ if role == "teacher":
 else:
     # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url and ma_de_url in library:
-        # Khung thông tin đề nhỏ gọn, nền tối
+        # SÁT LÊN TRÊN: Khung thông tin đề nhỏ gọn
         st.markdown(f'<div style="text-align:center;"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
         st.divider()
 
@@ -175,7 +182,6 @@ else:
                 answers[f"Câu {idx}"] = st.text_input(f"Trả lời câu {idx}:", key=f"ans_{idx}", label_visibility="collapsed")
             
             if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
-                # Chấm điểm
                 correct_count = 0
                 for idx, item in enumerate(quiz_data, 1):
                     user_ans = str(answers.get(f"Câu {idx}", "")).strip().lower()
@@ -183,8 +189,6 @@ else:
                     if user_ans == real_ans: correct_count += 1
                 
                 score = round((correct_count / len(quiz_data)) * 10, 1)
-                
-                # Lưu kết quả
                 results = load_db(RESULT_PATH)
                 submission = {
                     "time": datetime.now().strftime("%H:%M:%S"),
@@ -203,7 +207,6 @@ else:
                     <p>Em làm đúng {correct_count}/{len(quiz_data)} câu</p>
                 </div>""", unsafe_allow_html=True)
 
-            # HIỂN THỊ DANH SÁCH LIVE CÁC BẠN ĐANG LÀM/ĐÃ NỘP
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown("### 🟢 DANH SÁCH CÁC BẠN ĐÃ HOÀN THÀNH")
             all_res = load_db(RESULT_PATH).get(ma_de_url, [])
