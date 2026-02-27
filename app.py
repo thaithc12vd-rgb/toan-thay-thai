@@ -30,16 +30,18 @@ st.markdown(f"""
     .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
     .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
     
+    /* ĐIỀU CHỈNH KHOẢNG CÁCH NỘI DUNG CHÍNH */
     .main-content {{ margin-top: 100px; margin-bottom: 80px; padding: 0 20px; }}
     
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
     
-    /* CỤM KHUNG TÊN ĐỀ DỜI LÊN SÁT CHỮ KÝ (~2CM) */
+    /* CỤM KHUNG TÊN ĐỀ DỜI LÊN CỰC SÁT (~2CM) */
     .move-up-container {{
         position: relative;
-        top: -65px; 
+        top: -90px; /* LỰC ĐẨY ÂM MẠNH ĐỂ DỜI LÊN SÁT NÚT */
         text-align: center;
         z-index: 99;
+        margin-bottom: -60px; /* BÙ LẠI KHOẢNG TRỐNG PHÍA DƯỚI */
     }}
     
     .mini-quiz-box {{
@@ -52,7 +54,7 @@ st.markdown(f"""
         font-weight: bold;
         border: 1px solid #FFD700;
         box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        margin-bottom: 10px;
+        margin-bottom: 5px;
     }}
 
     .fixed-footer {{
@@ -63,7 +65,7 @@ st.markdown(f"""
     }}
     
     .ultra-tight-hr {{ 
-        margin: 0 auto 15px auto !important; 
+        margin: 0 auto !important; 
         border: 0; 
         border-top: 1px solid rgba(0,0,0,0.1); 
         width: 100%;
@@ -175,6 +177,7 @@ if role == "teacher":
 else:
     # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url and ma_de_url in library:
+        # ÉP CỤM NÀY DỜI LÊN CỰC SÁT
         st.markdown(f'''
             <div class="move-up-container">
                 <div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div>
@@ -182,7 +185,7 @@ else:
             </div>
         ''', unsafe_allow_html=True)
 
-        st.markdown('<div class="card" style="margin-top:-50px;">', unsafe_allow_html=True)
+        st.markdown('<div class="card" style="margin-top:-30px;">', unsafe_allow_html=True)
         student_name = st.text_input("Bước 1: Nhập tên của em để hiện đề bài:", key="student_name").strip()
         st.markdown('</div>', unsafe_allow_html=True)
         
@@ -224,7 +227,6 @@ else:
             st.markdown("### 🟢 DANH SÁCH CÁC BẠN ĐÃ HOÀN THÀNH")
             all_res = load_db(RESULT_PATH).get(ma_de_url, [])
             if all_res:
-                # SỬA LỖI TRỌNG TÂM: Đóng ngoặc đầy đủ cho hàm DataFrame và sort_index
                 df_res = pd.DataFrame(all_res).sort_index(ascending=False)
                 st.table(df_res[["time", "student", "score"]].rename(columns={"time":"Giờ nộp", "student":"Học sinh", "score":"Điểm"}))
             else:
