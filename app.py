@@ -38,7 +38,7 @@ st.markdown(f"""
     .result-card {{ margin-top: -150px !important; text-align: center; border-top: 8px solid #FFD700 !important; }}
     .rank-text {{ font-size: 22px; font-weight: 900; color: #d32f2f; margin-top: 10px; }}
     .fixed-footer {{ position: fixed; bottom: 0; left: 0; width: 100%; background-color: #C5D3E8; color: #004F98; text-align: center; padding: 10px 0; font-weight: bold; font-size: 14px; z-index: 1001; border-top: 1px solid rgba(0,79,152,0.1); }}
-    .live-btn button {{ background-color: #d32f2f !important; color: white !important; font-weight: bold !important; border-radius: 10px; }}
+    .live-btn button {{ background-color: #d32f2f !important; color: white !important; font-weight: bold !important; border-radius: 10px; border: 2px solid white !important; }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{"HỆ THỐNG QUẢN LÝ" if role=="teacher" else "TOÁN LỚP 3 - THẦY THÁI"}</div>
@@ -47,7 +47,7 @@ st.markdown(f"""
 <div class="fixed-footer">DESIGN BY TRAN HOANG THAI</div>
 """, unsafe_allow_html=True)
 
-# --- 2. BỘ MÁY BIẾN ĐỔI ĐỀ BÀI (VÁ LỖI CHẤM ĐIỂM CHUẨN) ---
+# --- 2. BỘ MÁY BIẾN ĐỔI ĐỀ BÀI (TỰ CẬP NHẬT ĐÁP ÁN ĐỂ CHẤM ĐIỂM) ---
 TEN_DANH_SACH = ["An", "Bình", "Chi", "Dũng", "Yến", "Lan", "Nam", "Mai", "Cúc", "Tùng", "Linh", "Hùng", "Bắc"]
 
 def bien_doi_cau_hoi(q_text, a_text):
@@ -60,7 +60,7 @@ def bien_doi_cau_hoi(q_text, a_text):
         if t in cau_moi:
             cau_moi = cau_moi.replace(t, random.choice([x for x in TEN_DANH_SACH if x != t]))
     
-    # Tính toán lại đáp án mới tự động theo đề đã đổi số
+    # Logic tính toán lại đáp án để chấm điểm không bị sai
     da_moi = a_text
     try:
         if str(a_text).isdigit():
@@ -78,62 +78,98 @@ def bien_doi_cau_hoi(q_text, a_text):
 # --- 3. QUẢN LÝ DỮ LIỆU ---
 FILE_DB, FILE_RES, FILE_PROF = "quiz_lib.json", "student_results.json", "student_profiles.json"
 
-def load_data(path):
+def doc_file(path):
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f: return json.load(f)
         except: return {}
     return {}
 
-def save_data(path, data):
+def ghi_file(path, data):
     with open(path, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=4)
 
-library = load_data(FILE_DB)
-profiles = load_data(FILE_PROF)
-results_all = load_data(FILE_RES)
+def quet_don_48h(results):
+    hien_tai = datetime.now()
+    thay_doi = False; kq_moi = {}
+    for de, ds in results.items():
+        loc = []
+        for r in ds:
+            try:
+                tg = datetime.strptime(r.get('full_time', '2000-01-01 00:00:00'), "%Y-%m-%d %H:%M:%S")
+                if hien_tai - tg < timedelta(hours=48): loc.append(r)
+                else: thay_doi = True
+            except: loc.append(r)
+        kq_moi[de] = loc
+    if thay_doi: ghi_file(FILE_RES, kq_moi)
+    return kq_moi
 
-# Khởi tạo session
+library = doc_file(FILE_DB)
+profiles = doc_file(FILE_PROF)
+results_all = doc_file(FILE_RES) # Load toàn bộ để tính tổng vĩnh viễn
+
 for k, v in [('is_accepted', False), ('is_submitted', False), ('cau_hoi_hien_tai', []), ('ver_key', 0), ('data_step3', []), ('student_name', ""), ('current_rank', 0), ('final_score', 0), ('view_live', False)]:
     if k not in st.session_state: st.session_state[k] = v
 
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
 if role == "teacher":
-    # --- GIAO DIỆN QUẢN TRỊ ---
-    col_l, col_r = st.columns([1, 1], gap="medium")
-    
+    col_l, col_r = st.columns([1, 4], gap="medium")
     with col_l:
-        st.markdown('<div class="card live-btn">', unsafe_allow_html=True)
-        if st.button("🔴 NHẤN VÀO ĐÂY ĐỂ XEM LIVE", use_container_width=True):
-            st.session_state.view_live = not st.session_state.view_live
-        
-        m_de_live = st.text_input("Nhập Mã đề để xem Live:", key="live_de_input").strip()
-        
-        if st.session_state.view_live and m_de_live:
-            st.markdown(f"### 🏆 TOP 100 ĐANG LIVE: {m_de_live}")
-            data_all = load_data(FILE_RES).get(m_de_live, [])
-            if data_all:
-                df_live = pd.DataFrame(data_all).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
-                df_live.index += 1; df_live['Hạng'] = df_live.index
-                st.table(df_live.head(100)[['Hạng', 'student', 'score', 'time']].rename(columns={'student':'Học sinh','score':'Điểm','time':'Giờ nộp'}))
-            else: st.write("Chưa có dữ liệu học sinh.")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col_r:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         pwd = st.text_input("Mật mã quản trị", type="password", key="p_admin")
         if pwd == "thai2026":
             st.success("Đã xác nhận")
-            # Phần quản lý đề gốc... (giữ nguyên logic soạn thảo của thầy)
-            m_de = st.text_input("Mã đề để soạn/lưu:", key="m_de_admin").strip()
-            if m_de: st.code(f"https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}")
-        st.markdown('</div>', unsafe_allow_html=True)
+            up_f = st.file_uploader("📤 Tải CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
+            if up_f:
+                df = pd.read_csv(io.BytesIO(up_f.getvalue()), header=None, encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
+                st.session_state.data_step3 = [{"q": f"{str(r[1])}: {str(r[2])}" if pd.notnull(r[1]) else str(r[2]), "a": str(r[3]) if len(r)>3 else ""} for _, r in df.iterrows() if not any(x in str(r[0]).lower() for x in ["stt", "câu"])]
+                st.session_state.ver_key += 1; st.rerun()
+            
+            # NÚT LIVE PHÍA DƯỚI UPLOAD FILE (BÊN TRÁI)
+            st.markdown('<div class="live-btn">', unsafe_allow_html=True)
+            if st.button("🔴 NHẤN VÀO ĐÂY ĐỂ XEM LIVE", use_container_width=True):
+                st.session_state.view_live = not st.session_state.view_live
+            st.markdown('</div>', unsafe_allow_html=True)
 
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col_r:
+        if pwd == "thai2026":
+            if st.session_state.view_live:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                m_de_live = st.text_input("Nhập Mã đề để xem Live:", key="live_de").strip()
+                if m_de_live:
+                    st.markdown(f"### 🏆 TOP 100 ĐANG LIVE: {m_de_live}")
+                    data_live = doc_file(FILE_RES).get(m_de_live, [])
+                    if data_live:
+                        df_live = pd.DataFrame(data_live).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
+                        df_live.index += 1; df_live['Hạng'] = df_live.index
+                        st.table(df_live.head(100)[['Hạng', 'student', 'score', 'time']].rename(columns={'student':'Học sinh','score':'Điểm','time':'Giờ nộp'}))
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            list_de = list(library.keys())
+            de_chon = st.selectbox("📂 Chọn đề cũ:", options=["-- Tạo mới --"] + list_de)
+            if de_chon != "-- Tạo mới --" and st.session_state.get('last_de') != de_chon:
+                st.session_state.data_step3 = library.get(de_chon, [])
+                st.session_state.last_de = de_chon; st.session_state.ver_key += 1; st.rerun()
+            m_de = st.text_input("👉 Mã đề:", value=de_chon if de_chon != "-- Tạo mới --" else "").strip()
+            if m_de: st.code(f"https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}")
+            if st.button("🚀 LƯU ĐỀ"):
+                if m_de:
+                    n = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
+                    library[m_de] = [{"q": st.session_state.get(f"q_{st.session_state.ver_key}_{i}", ""), "a": st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")} for i in range(1, n + 1)]
+                    ghi_file(FILE_DB, library); st.success("Đã lưu!"); st.rerun()
+            for i in range(1, (len(st.session_state.data_step3) or 5) + 1):
+                vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
+                va = st.session_state.data_step3[i-1]["a"] if i <= len(st.session_state.data_step3) else ""
+                st.text_input(f"Câu {i}", value=vq, key=f"q_{st.session_state.ver_key}_{i}")
+                st.text_input(f"Đáp án {i}", value=va, key=f"a_{st.session_state.ver_key}_{i}")
+            st.markdown('</div>', unsafe_allow_html=True)
 else:
     # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url in library:
         st.markdown(f'<div class="move-up-container"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
-        
         if not st.session_state.is_accepted:
             st.markdown('<div class="center-wrapper-top"><p class="invite-text">MỜI CÁC EM NHẬP HỌ TÊN ĐỂ LÀM BÀI</p>', unsafe_allow_html=True)
             c1, c2, c3 = st.columns([1, 2, 1])
@@ -142,7 +178,7 @@ else:
                 if st.button("ĐỒNG Ý", use_container_width=True, type="primary"):
                     if name_in:
                         sk = f"{name_in}_{ma_de_url}"
-                        if profiles.get(sk, {}).get("attempts", 0) >= 20: st.error("Đã làm quá 20 lần!")
+                        if doc_file(FILE_PROF).get(sk, {}).get("attempts", 0) >= 20: st.error("Làm quá 20 lần!")
                         else:
                             st.session_state.student_name = name_in; st.session_state.is_accepted = True
                             st.session_state.cau_hoi_hien_tai = [bien_doi_cau_hoi(i['q'], i['a']) for i in library[ma_de_url]]
@@ -153,44 +189,40 @@ else:
             ans_dict = {}
             for idx, item in enumerate(st.session_state.cau_hoi_hien_tai, 1):
                 st.markdown(f'<div class="card"><b>Câu {idx}:</b> {item["q"]}</div>', unsafe_allow_html=True)
-                ans_dict[f"Câu {idx}"] = st.text_input(f"A_{idx}", key=f"ans_{idx}", label_visibility="collapsed", autocomplete="off")
-            
+                ans_dict[f"Câu {idx}"] = st.text_input(f"Nhập đáp án {idx}:", key=f"ans_{idx}", label_visibility="collapsed", autocomplete="off")
             if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
+                # CHẤM ĐIỂM CHUẨN XÁC THEO ĐỀ ĐÃ ĐỔI SỐ
                 dung = sum(1 for idx, it in enumerate(st.session_state.cau_hoi_hien_tai, 1) if str(ans_dict.get(f"Câu {idx}", "")).strip() == str(it["a"]))
                 diem = round((dung / len(st.session_state.cau_hoi_hien_tai)) * 10, 1); t = datetime.now()
-                
-                # Lưu kết quả vĩnh viễn (Không bao giờ xóa)
-                r_all = load_data(FILE_RES)
+                r_all = doc_file(FILE_RES)
                 if ma_de_url not in r_all: r_all[ma_de_url] = []
                 r_all[ma_de_url].append({"full_time": t.strftime("%Y-%m-%d %H:%M:%S"), "time": t.strftime("%H:%M:%S"), "student": st.session_state.student_name, "score": diem})
-                save_data(FILE_RES, r_all)
-                
-                # Xếp hạng và Profile vĩnh viễn
-                df_t = pd.DataFrame(r_all[ma_de_url]).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
-                st.session_state.current_rank = df_t[df_t['student'] == st.session_state.student_name].index[0] + 1
+                ghi_file(FILE_RES, r_all)
+                dt = pd.DataFrame(r_all[ma_de_url]).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
+                st.session_state.current_rank = dt[dt['student'] == st.session_state.student_name].index[0] + 1
                 sk = f"{st.session_state.student_name}_{ma_de_url}"
-                prof = profiles.get(sk, {"attempts": 0, "top10_count": 0})
+                pall = doc_file(FILE_PROF)
+                prof = pall.get(sk, {"attempts": 0, "top10_count": 0})
                 prof["attempts"] += 1
                 if st.session_state.current_rank <= 10: prof["top10_count"] += 1
-                profiles[sk] = prof; save_data(FILE_PROF, profiles)
-                
+                pall[sk] = prof; ghi_file(FILE_PROF, pall)
                 st.session_state.final_score = diem; st.session_state.is_submitted = True; st.balloons(); st.rerun()
 
         if st.session_state.is_submitted:
-            st.markdown(f'<div class="card result-card"><h2>KẾT QUẢ: {st.session_state.final_score}/10</h2><div class="rank-text">BẠN ĐANG ĐỨNG THỨ HẠNG SỐ: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card result-card"><h2 style="color:#004F98;">KẾT QUẢ: {st.session_state.final_score}/10</h2><div class="rank-text">BẠN ĐANG ĐỨNG THỨ HẠNG SỐ: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
             
-            # BẢNG VÀNG LIVE CỦA HỌC SINH
+            # BẢNG VÀNG LIVE HỌC SINH
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            data_live = load_data(FILE_RES).get(ma_de_url, [])
-            st.markdown(f"### 📊 TỔNG SỐ BẠN ĐÃ LÀM BÀI NÀY: {len(data_live)}")
-            if data_live:
-                df = pd.DataFrame(data_live).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
+            all_data = doc_file(FILE_RES).get(ma_de_url, [])
+            st.markdown(f"### 📊 TỔNG SỐ BẠN ĐÃ LÀM BÀI NÀY: {len(all_data)}")
+            if all_data:
+                # Lọc 48h cho bảng hiển thị nhưng vẫn giữ data vĩnh viễn trong file
+                ds_hien_thi = quet_don_48h({ma_de_url: all_data})[ma_de_url]
+                df = pd.DataFrame(ds_hien_thi).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
                 df.index += 1; df['Hạng'] = df.index
                 df['Top 10'] = df['Hạng'].apply(lambda x: "💎 Kim Cương" if x==1 else ("🥇 Vàng" if x==2 else ("🥈 Bạc" if x==3 else ("🥉 Đồng" if x<=10 else ""))))
-                df['Số lần đạt Top 10'] = df['student'].apply(lambda x: profiles.get(f"{x}_{ma_de_url}", {}).get("top10_count", 0))
-                
-                st.table(df.head(100)[['Hạng', 'Top 10', 'student', 'score', 'time', 'Số lần đạt Top 10']].rename(columns={'student':'Học sinh','score':'Điểm','time':'Giờ nộp'}))
-            
+                df['Số lần đạt Top 10'] = df['student'].apply(lambda x: doc_file(FILE_PROF).get(f"{x}_{ma_de_url}", {}).get("top10_count", 0))
+                st.table(df.head(100)[['Hạng', 'Top 10', 'student', 'score', 'time', 'Số lần đạt Top 10']].rename(columns={'student':'Học sinh', 'score':'Điểm', 'time':'Giờ nộp'}))
             if st.button("Làm bài tiếp"):
                 st.session_state.is_submitted = False; st.session_state.cau_hoi_hien_tai = [bien_doi_cau_hoi(i['q'], i['a']) for i in library[ma_de_url]]; st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
