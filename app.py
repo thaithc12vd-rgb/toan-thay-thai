@@ -55,7 +55,7 @@ st.markdown(f"""
         box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }}
 
-    /* CANH GIỮA & ĐỊNH DẠNG CHỮ MỜI NHẬP TÊN */
+    /* KHỐI NHẬP TÊN DỜI LÊN 5CM VÀ CANH GIỮA */
     .invite-text {{
         color: #004F98;
         font-weight: 900;
@@ -65,12 +65,14 @@ st.markdown(f"""
         text-transform: uppercase;
     }}
     
-    .center-wrapper {{
+    .center-wrapper-top {{
         display: flex;
         flex-direction: column;
         align-items: center;
         width: 100%;
-        margin-top: 20px;
+        margin-top: -180px; /* DỜI LÊN 5CM (KHOẢNG 180PX) */
+        position: relative;
+        z-index: 100;
     }}
 
     .fixed-footer {{
@@ -118,6 +120,8 @@ if 'data_step3' not in st.session_state:
     st.session_state.data_step3 = []
 if 'ver_key' not in st.session_state:
     st.session_state.ver_key = 0
+if 'is_accepted' not in st.session_state:
+    st.session_state.is_accepted = False
 
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
@@ -200,23 +204,26 @@ else:
             </div>
         ''', unsafe_allow_html=True)
 
-        # PHẦN NHẬP TÊN CANH GIỮA, CHỮ XANH ĐẬM, KHÔNG KHUNG
-        if not st.session_state.get('student_name', "").strip():
-            st.markdown('<div class="center-wrapper">', unsafe_allow_html=True)
+        # PHẦN NHẬP TÊN DỜI LÊN 5CM VÀ CÓ NÚT ĐỒNG Ý
+        if not st.session_state.is_accepted:
+            st.markdown('<div class="center-wrapper-top">', unsafe_allow_html=True)
             st.markdown('<p class="invite-text">MỜI CÁC EM NHẬP HỌ TÊN ĐỂ LÀM BÀI</p>', unsafe_allow_html=True)
             
-            # Cột canh giữa cho input
             c1, c2, c3 = st.columns([1, 2, 1])
             with c2:
-                student_name = st.text_input("", key="student_name_input", label_visibility="collapsed").strip()
-                if student_name:
-                    st.session_state.student_name = student_name
-                    st.rerun()
+                name_input = st.text_input("", key="student_name_step", label_visibility="collapsed").strip()
+                if st.button("ĐỒNG Ý", use_container_width=True, type="primary"):
+                    if name_input:
+                        st.session_state.student_name = name_input
+                        st.session_state.is_accepted = True
+                        st.rerun()
+                    else:
+                        st.warning("Em hãy nhập họ tên trước khi nhấn Đồng ý nhé!")
             st.markdown('</div>', unsafe_allow_html=True)
         
-        # CHỈ HIỆN CÂU HỎI KHI ĐÃ CÓ TÊN TRONG SESSION
-        current_name = st.session_state.get('student_name', "")
-        if current_name:
+        # CHỈ HIỆN CÂU HỎI KHI ĐÃ NHẤN ĐỒNG Ý
+        if st.session_state.is_accepted:
+            current_name = st.session_state.get('student_name', "")
             st.success(f"Chào {current_name}! Mời em bắt đầu làm bài.")
             answers = {}
             quiz_data = library[ma_de_url]
@@ -259,8 +266,6 @@ else:
             else:
                 st.write("Chưa có bạn nào nộp bài, em hãy là người đầu tiên!")
             st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.warning("Em hãy nhập họ tên ở trên để xem câu hỏi nhé!")
     else:
         st.info("Chào mừng các em! Vui lòng dùng đúng link Thầy Thái gửi để làm bài.")
 
