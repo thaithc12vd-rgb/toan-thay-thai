@@ -2,7 +2,7 @@ import streamlit as st
 import json, os, pandas as pd
 import io
 
-# --- 1. CẤU HÌNH GIAO DIỆN (GIỮ NGUYÊN) ---
+# --- 1. CẤU HÌNH GIAO DIỆN ---
 st.set_page_config(page_title="Toan Lop 3 - Thay Thai", layout="wide")
 
 st.markdown("""
@@ -20,7 +20,7 @@ st.markdown("""
     .main-content { margin-top: 110px; margin-bottom: 100px; padding: 0 20px; }
     .card { background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }
     .small-inline-title { color: #004F98 !important; font-size: 16px !important; font-weight: bold !important; margin-bottom: 5px; display: block; }
-    .link-box { background-color: #f1f3f4; border: 2px dashed #004F98; padding: 12px; border-radius: 8px; color: #d32f2f; font-family: monospace; font-size: 15px; word-break: break-all; margin: 10px 0; font-weight: bold; text-align: center; }
+    .link-box { background-color: #f1f3f4; border: 2px dashed #004F98; padding: 12px; border-radius: 8px; color: #d32f2f; font-family: monospace; font-size: 16px; word-break: break-all; margin: 10px 0; font-weight: bold; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -87,7 +87,7 @@ if role == "teacher":
             st.subheader("📝 QUẢN LÝ NỘI DUNG")
             
             list_de = list(library.keys())
-            de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list_de, key="sel_de_v35")
+            de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list_de, key="sel_de_v40")
             
             if de_chon != "-- Tạo mới --" and st.session_state.get('last_sel') != de_chon:
                 st.session_state.data_step3 = library.get(de_chon, [])
@@ -96,29 +96,16 @@ if role == "teacher":
                 st.rerun()
 
             st.divider()
+            
+            # --- SỬA ĐÚNG TRỌNG TÂM: HIỆN LINK KHI NHẬP MÃ ĐỀ ---
             m_de_raw = st.text_input("👉 Bước 1: Nhập Mã đề bài:", value=de_chon if de_chon != "-- Tạo mới --" else "").strip()
 
             if m_de_raw:
-                st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
-                
-                # SỬA LỖI TRỌNG TÂM: Tự động lấy địa chỉ thực tế (URL) của trang web
-                js_cp = f"""
-                <script>
-                function copyFinal() {{
-                    var currentUrl = window.location.origin + window.location.pathname;
-                    var finalLink = currentUrl + "?de=" + encodeURIComponent("{m_de_raw}");
-                    var el = document.createElement('textarea'); 
-                    el.value = finalLink;
-                    document.body.appendChild(el); 
-                    el.select();
-                    document.execCommand('copy'); 
-                    document.body.removeChild(el);
-                    alert("✅ Đã copy link thành công! Thầy hãy dán gửi cho học sinh.");
-                }}
-                </script>
-                <button onclick="copyFinal()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📋 NHẤN ĐỂ COPY LINK</button>
-                """
-                st.markdown(js_cp, unsafe_allow_html=True)
+                st.markdown(f"**🔗 Link gửi cho học sinh làm bài:**")
+                # Tạo link chuẩn dựa trên địa chỉ hiện tại của Thầy
+                final_link = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de_raw}"
+                st.markdown(f'<div class="link-box">{final_link}</div>', unsafe_allow_html=True)
+                st.info("Thầy hãy bôi đen và Copy dòng link màu đỏ ở trên để gửi qua Zalo.")
 
             st.divider()
             
@@ -138,7 +125,7 @@ if role == "teacher":
 
             st.markdown("**👉 Bước 3: Soạn thảo và Lưu bài:**")
             count_data = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
-            num_q = st.number_input("Số câu hiển thị:", 1, 1000, value=count_data, key=f"num_v35_{st.session_state.ver_key}")
+            num_q = st.number_input("Số câu hiển thị:", 1, 1000, value=count_data, key=f"num_v40_{st.session_state.ver_key}")
 
             for i in range(1, num_q + 1):
                 vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
