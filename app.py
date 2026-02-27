@@ -27,13 +27,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. QUẢN LÝ DỮ LIỆU (FIX UNICODE & UTF-8) ---
+# --- 2. QUẢN LÝ DỮ LIỆU ---
 DB_PATH = "quiz_lib.json"
 
 def load_db():
     if os.path.exists(DB_PATH):
         try:
-            with open(DB_PATH, "r", encoding="utf-8", errors="replace") as f: 
+            with open(DB_PATH, "r", encoding="utf-8") as f: 
                 return json.load(f)
         except Exception: return {}
     return {}
@@ -62,10 +62,12 @@ if role == "teacher":
         pwd = st.text_input("Mật mã quản trị", type="password", key="pwd_f")
         if pwd == "thai2026":
             st.success("Đã xác nhận")
+            # --- SỬA LỖI TRỌNG TÂM: Đọc file CSV an toàn ---
             up_f = st.file_uploader("📤 Tải đề từ CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
             if up_f:
                 try:
-                    df = pd.read_csv(up_f, header=None, encoding='utf-8-sig', errors='replace').dropna(how='all')
+                    # Sử dụng encoding_errors thay cho errors để tránh lỗi tham số
+                    df = pd.read_csv(up_f, header=None, encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
                     newList = []
                     for _, r in df.iterrows():
                         if any(x in str(r[0]).lower() for x in ["stt", "câu"]): continue
@@ -76,7 +78,7 @@ if role == "teacher":
                         st.session_state.ver_key += 1
                         st.rerun()
                 except Exception as e:
-                    st.error(f"Lỗi định dạng file: {e}")
+                    st.error(f"Lỗi đọc dữ liệu: {e}")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_r:
@@ -96,7 +98,6 @@ if role == "teacher":
             
             if m_de:
                 st.markdown("**👉 Bước 2: Bôi đen dòng dưới đây để Copy gửi cho học sinh:**")
-                # SỬA TRỌNG TÂM: Lấy đúng địa chỉ Thầy vừa cung cấp
                 base_url = "https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/"
                 final_link = f"{base_url}?de={m_de}"
                 st.text_input("Link bài tập:", value=final_link, key="link_out", label_visibility="collapsed")
@@ -129,7 +130,6 @@ if role == "teacher":
                 st.markdown("---")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # HIỂN THỊ CHO HỌC SINH
     if ma_de_url and ma_de_url in library:
         st.markdown(f'<div class="card"><h3>✍️ ĐANG LÀM ĐỀ: {ma_de_url}</h3></div>', unsafe_allow_html=True)
         for idx, item in enumerate(library[ma_de_url], 1):
