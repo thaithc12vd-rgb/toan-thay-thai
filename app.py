@@ -30,18 +30,17 @@ st.markdown(f"""
     .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
     .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
     
-    /* ĐIỀU CHỈNH KHOẢNG CÁCH NỘI DUNG CHÍNH */
     .main-content {{ margin-top: 100px; margin-bottom: 80px; padding: 0 20px; }}
     
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
     
-    /* CỤM KHUNG TÊN ĐỀ DỜI LÊN CỰC SÁT (~2CM) */
+    /* CỤM KHUNG TÊN ĐỀ DỜI LÊN CỰC MẠNH THEO YÊU CẦU */
     .move-up-container {{
         position: relative;
-        top: -90px; /* LỰC ĐẨY ÂM MẠNH ĐỂ DỜI LÊN SÁT NÚT */
+        top: -130px; /* TĂNG LỰC ĐẨY LÊN THÊM ~2CM */
         text-align: center;
         z-index: 99;
-        margin-bottom: -60px; /* BÙ LẠI KHOẢNG TRỐNG PHÍA DƯỚI */
+        margin-bottom: -100px; /* THU HẸP KHOẢNG TRỐNG PHÍA DƯỚI */
     }}
     
     .mini-quiz-box {{
@@ -115,7 +114,7 @@ if role == "teacher":
             up_f = st.file_uploader("📤 Tải đề từ CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
             if up_f:
                 try:
-                    df = pd.read_csv(up_f, header=None, encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
+                    df = pd.read_csv(io.BytesIO(up_f.getvalue()), header=None, encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
                     newList = []
                     for _, r in df.iterrows():
                         if any(x in str(r[0]).lower() for x in ["stt", "câu"]): continue
@@ -177,7 +176,6 @@ if role == "teacher":
 else:
     # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url and ma_de_url in library:
-        # ÉP CỤM NÀY DỜI LÊN CỰC SÁT
         st.markdown(f'''
             <div class="move-up-container">
                 <div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div>
