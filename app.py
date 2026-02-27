@@ -38,6 +38,10 @@ st.markdown(f"""
     .result-card {{ margin-top: -150px !important; text-align: center; border-top: 8px solid #FFD700 !important; }}
     .rank-text {{ font-size: 22px; font-weight: 900; color: #d32f2f; margin-top: 10px; }}
     .fixed-footer {{ position: fixed; bottom: 0; left: 0; width: 100%; background-color: #C5D3E8; color: #004F98; text-align: center; padding: 10px 0; font-weight: bold; font-size: 14px; z-index: 1001; border-top: 1px solid rgba(0,79,152,0.1); }}
+    
+    /* Nút Live màu đỏ nổi bật */
+    .stButton>button {{ border-radius: 10px; }}
+    .live-btn button {{ background-color: #d32f2f !important; color: white !important; font-weight: bold !important; border: 2px solid #white !important; }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{"HỆ THỐNG QUẢN LÝ" if role=="teacher" else "TOÁN LỚP 3 - THẦY THÁI"}</div>
@@ -46,18 +50,15 @@ st.markdown(f"""
 <div class="fixed-footer">DESIGN BY TRAN HOANG THAI</div>
 """, unsafe_allow_html=True)
 
-# --- 2. BỘ MÁY BIẾN ĐỔI ĐỀ BÀI (VÁ LỖI CHẤM ĐIỂM) ---
+# --- 2. BỘ MÁY BIẾN ĐỔI ĐỀ BÀI ---
 TEN_DS = ["An", "Bình", "Chi", "Dũng", "Yến", "Lan", "Nam", "Mai", "Cúc", "Tùng", "Linh", "Hùng", "Bắc"]
 
 def bien_doi_cau_hoi(q_text, a_text):
     def thay_so(match):
         return str(max(1, int(match.group()) + random.randint(-2, 2)))
-    
     q_moi = re.sub(r'\b\d+\b', thay_so, q_text)
     for t in TEN_DS:
         if t in q_moi: q_moi = q_moi.replace(t, random.choice([x for x in TEN_DS if x != t]))
-    
-    # Tính lại đáp án cực kỳ chính xác
     a_moi = a_text
     try:
         clean_q = q_moi.replace('x', '*').replace(':', '/')
@@ -70,7 +71,7 @@ def bien_doi_cau_hoi(q_text, a_text):
     except: pass
     return {"q": q_moi, "a": a_moi}
 
-# --- 3. QUẢN LÝ DỮ LIỆU VĨNH VIỄN ---
+# --- 3. QUẢN LÝ DỮ LIỆU ---
 FILE_DB, FILE_RES, FILE_PROF = "quiz_lib.json", "student_results.json", "student_profiles.json"
 
 def load_json(path):
@@ -85,37 +86,41 @@ library = load_json(FILE_DB)
 profiles = load_json(FILE_PROF)
 results_all = load_json(FILE_RES)
 
-# Khởi tạo session
-for k, v in [('is_accepted', False), ('is_submitted', False), ('cau_hoi_hien_tai', []), ('student_name', ""), ('current_rank', 0), ('final_score', 0)]:
+for k, v in [('is_accepted', False), ('is_submitted', False), ('cau_hoi_hien_tai', []), ('student_name', ""), ('current_rank', 0), ('final_score', 0), ('view_live', False)]:
     if k not in st.session_state: st.session_state[k] = v
 
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
 if role == "teacher":
-    col_l, col_r = st.columns([1, 2], gap="medium")
+    col_l, col_r = st.columns([1.5, 1], gap="large")
     with col_l:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        pwd = st.text_input("Mật mã", type="password")
+        pwd = st.text_input("Mật mã quản trị", type="password")
         if pwd == "thai2026":
-            m_de = st.text_input("Mã đề bài:").strip()
-            if m_de: st.code(f"https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}")
+            m_de = st.text_input("Nhập Mã đề để quản lý:").strip()
+            if m_de:
+                st.info(f"Link học sinh: https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}")
+                if st.button("Lưu cấu trúc đề hiện tại"):
+                    # Logic lưu đề gốc của thầy
+                    pass
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col_r:
         if pwd == "thai2026":
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            if st.button("🔴 NHẤN VÀO ĐÂY ĐỂ XEM LIVE KẾT QUẢ"):
-                st.session_state.view_live = True
+            st.markdown('<div class="card live-btn">', unsafe_allow_html=True)
+            if st.button("🔴 NHẤN VÀO ĐÂY ĐỂ XEM LIVE", use_container_width=True):
+                st.session_state.view_live = not st.session_state.view_live
             
-            if st.session_state.get('view_live'):
-                st.markdown("### 🏆 BẢNG VÀNG LIVE 100 EM (Cập nhật liên tục)")
-                data = results_all.get(m_de, []) if m_de else []
+            if st.session_state.view_live and m_de:
+                st.markdown(f"### 🏆 TOP 100 ĐANG LIVE: {m_de}")
+                data = results_all.get(m_de, [])
                 if data:
                     df = pd.DataFrame(data).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
                     df.index += 1
                     df['Hạng'] = df.index
                     st.table(df.head(100)[['Hạng', 'student', 'score', 'time']].rename(columns={'student':'Học sinh','score':'Điểm','time':'Giờ nộp'}))
-                else: st.write("Chưa có dữ liệu.")
+            elif st.session_state.view_live:
+                st.warning("Vui lòng nhập Mã đề ở bên trái trước.")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
     # --- GIAO DIỆN HỌC SINH ---
@@ -130,7 +135,7 @@ else:
                 if st.button("ĐỒNG Ý", use_container_width=True, type="primary"):
                     if name_in:
                         sk = f"{name_in}_{ma_de_url}"
-                        if profiles.get(sk, {}).get("attempts", 0) >= 20: st.error("Đã làm 20 lần!")
+                        if profiles.get(sk, {}).get("attempts", 0) >= 20: st.error("Đã làm bài 20 lần!")
                         else:
                             st.session_state.student_name = name_in; st.session_state.is_accepted = True
                             st.session_state.cau_hoi_hien_tai = [bien_doi_cau_hoi(i['q'], i['a']) for i in library[ma_de_url]]
@@ -141,18 +146,16 @@ else:
             ans_dict = {}
             for idx, item in enumerate(st.session_state.cau_hoi_hien_tai, 1):
                 st.markdown(f'<div class="card"><b>Câu {idx}:</b> {item["q"]}</div>', unsafe_allow_html=True)
-                ans_dict[f"Câu {idx}"] = st.text_input(f"Đáp án {idx}", key=f"ans_{idx}", label_visibility="collapsed", autocomplete="off")
+                ans_dict[f"Câu {idx}"] = st.text_input(f"Nhập đáp án {idx}:", key=f"ans_{idx}", label_visibility="collapsed", autocomplete="off")
             
             if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
                 dung = sum(1 for idx, it in enumerate(st.session_state.cau_hoi_hien_tai, 1) if str(ans_dict.get(f"Câu {idx}", "")).strip() == str(it["a"]))
                 diem = round((dung / len(st.session_state.cau_hoi_hien_tai)) * 10, 1); t = datetime.now()
                 
-                # Lưu kết quả vĩnh viễn
                 if ma_de_url not in results_all: results_all[ma_de_url] = []
                 results_all[ma_de_url].append({"full_time": t.strftime("%Y-%m-%d %H:%M:%S"), "time": t.strftime("%H:%M:%S"), "student": st.session_state.student_name, "score": diem})
                 save_json(FILE_RES, results_all)
                 
-                # Cập nhật hạng và profile vĩnh viễn
                 df_t = pd.DataFrame(results_all[ma_de_url]).sort_values(by=['score', 'time'], ascending=[False, True]).reset_index(drop=True)
                 st.session_state.current_rank = df_t[df_t['student'] == st.session_state.student_name].index[0] + 1
                 sk = f"{st.session_state.student_name}_{ma_de_url}"
@@ -166,7 +169,6 @@ else:
         if st.session_state.is_submitted:
             st.markdown(f'<div class="card result-card"><h2>KẾT QUẢ: {st.session_state.final_score}/10</h2><div class="rank-text">BẠN ĐANG ĐỨNG THỨ HẠNG SỐ: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
             
-            # BẢNG LIVE HỌC SINH
             st.markdown('<div class="card">', unsafe_allow_html=True)
             data_live = results_all.get(ma_de_url, [])
             st.markdown(f"### 📊 TỔNG SỐ BẠN ĐÃ LÀM BÀI NÀY: {len(data_live)}")
