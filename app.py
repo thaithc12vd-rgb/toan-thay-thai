@@ -40,11 +40,11 @@ config = load_db("CFG")
 ma_de_url = st.query_params.get("de", "").strip() 
 role = st.query_params.get("role", "student")
 
-# --- KHỞI TẠO BỘ NHỚ TẠM THỜI (SỬA LỖI ATTRIBUTE ERROR) ---
+# KHỞI TẠO BỘ NHỚ TẠM
 if 'data_step3' not in st.session_state:
     st.session_state.data_step3 = []
 
-# --- HEADER PHÂN BIỆT ---
+# --- HEADER PHÂN QUYỀN ---
 h_title = "CHÀO MỪNG THẦY ĐẾN VỚI APP TOÁN LỚP 3" if role == "teacher" else "TOÁN LỚP 3 - THẦY THÁI"
 h_sub = "Chúc thầy luôn vượt qua thử thách" if role == "teacher" else "Chúc các em làm bài tốt"
 
@@ -56,8 +56,7 @@ if role == "teacher":
     with col_l:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<span class="small-inline-title">🔑 BẢO MẬT</span>', unsafe_allow_html=True)
-        # Tắt autocomplete để không lưu mật khẩu
-        pwd = st.text_input("Mật mã", type="password", key="pwd_teacher", label_visibility="collapsed")
+        pwd = st.text_input("Mật mã", type="password", key="pwd_teacher_safe", label_visibility="collapsed")
         
         if pwd == "thai2026":
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📁 FILE MẪU</span>', unsafe_allow_html=True)
@@ -66,7 +65,7 @@ if role == "teacher":
             st.download_button("📥 TẢI CSV MẪU", csv_m.encode('utf-8-sig'), "mau.csv", "text/csv", use_container_width=True)
             
             st.markdown('<span class="small-inline-title" style="margin-top:15px;">📤 UPLOAD ĐỀ</span>', unsafe_allow_html=True)
-            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="uploader_csv")
+            up_f = st.file_uploader("", type=["csv"], label_visibility="collapsed", key="uploader_final")
             
             if up_f is not None:
                 raw = up_f.getvalue()
@@ -91,7 +90,6 @@ if role == "teacher":
             st.subheader("📝 QUẢN LÝ NỘI DUNG")
             de_chon = st.selectbox("Lấy dữ liệu từ đề cũ:", options=["-- Tạo mới --"] + list(library.keys()))
             
-            # Nếu chọn đề cũ và chưa có dữ liệu mới up lên thì load đề cũ
             if de_chon != "-- Tạo mới --" and not st.session_state.data_step3:
                 st.session_state.data_step3 = library.get(de_chon, [])
 
@@ -100,42 +98,42 @@ if role == "teacher":
             
             if m_de:
                 st.markdown(f"**👉 Bước 2: Copy link cho học sinh:**")
-                clean_url = f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}"
-                st.markdown(f'<div class="link-box">{clean_url}</div>', unsafe_allow_html=True)
-                
-                js_clean_copy = f"""
+                # Tạo link chuẩn bằng JavaScript để tránh lỗi Bad Request
+                js_copy_logic = f"""
                 <script>
-                function cleanCopy() {{
-                    var url = "{clean_url}".trim();
+                function copyCleanLink() {{
+                    var baseUrl = window.location.origin + window.location.pathname;
+                    var finalUrl = baseUrl + "?de=" + encodeURIComponent("{m_de}");
                     var el = document.createElement('textarea');
-                    el.value = url;
+                    el.value = finalUrl;
                     document.body.appendChild(el);
                     el.select();
                     document.execCommand('copy');
                     document.body.removeChild(el);
-                    alert("✅ Đã copy link thành công!");
+                    alert("✅ Đã copy link bài tập sạch! Thầy hãy dán qua Zalo hoặc trình duyệt khác.");
                 }}
                 </script>
-                <button onclick="cleanCopy()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer; font-size:18px;">
-                📋 NHẤN VÀO ĐÂY ĐỂ COPY LINK
+                <button onclick="copyCleanLink()" style="width:100%; padding:15px; background-color:#004F98; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer; font-size:18px;">
+                📋 NHẤN VÀO ĐÂY ĐỂ COPY LINK (CHỐNG LỖI BAD REQUEST)
                 </button>
                 """
-                st.markdown(js_clean_copy, unsafe_allow_html=True)
+                st.markdown(js_copy_logic, unsafe_allow_html=True)
+                st.info("Lưu ý: Nếu nhấn nút trên chưa được, Thầy hãy copy dòng chữ dưới đây:")
+                st.code(f"https://toan-lop-3-thay-thai.streamlit.app/?de={m_de}")
 
             st.divider()
             st.markdown("**👉 Bước 3: Soạn câu hỏi:**")
-            # KHẮC PHỤC LỖI TRUY XUẤT BIẾN TẠI ĐÂY
             num_actual = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
             num_q = st.number_input("Số câu:", 1, 1000, value=num_actual)
             
-            with st.form("form_final_fix"):
+            with st.form("form_final_fixed"):
                 new_qs = []
                 for i in range(1, num_q + 1):
                     vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
                     va = st.session_state.data_step3[i-1]["a"] if i <= len(st.session_state.data_step3) else ""
                     st.markdown(f"**Câu {i}**")
-                    q_in = st.text_input(f"Q{i}", value=vq, key=f"qf_fix_{i}", label_visibility="collapsed")
-                    a_in = st.text_input(f"A{i}", value=va, key=f"af_fix_{i}")
+                    q_in = st.text_input(f"Q{i}", value=vq, key=f"qf_x_{i}", label_visibility="collapsed")
+                    a_in = st.text_input(f"A{i}", value=va, key=f"af_x_{i}")
                     new_qs.append({"q": q_in, "a": a_in})
                 
                 if st.form_submit_button("🚀 LƯU ĐỀ", use_container_width=True):
@@ -148,5 +146,5 @@ if role == "teacher":
 else:
     if ma_de_url in library:
         st.markdown(f'<div class="card"><h3>✍️ BÀI TẬP: {ma_de_url}</h3></div>', unsafe_allow_html=True)
-    else: st.info("Chào mừng các em! Hãy sử dụng link Thầy gửi.")
+    else: st.info("Chào mừng các em! Hãy sử dụng link Thầy Thái gửi.")
 st.markdown('</div>', unsafe_allow_html=True)
