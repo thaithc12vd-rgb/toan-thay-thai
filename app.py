@@ -34,13 +34,13 @@ st.markdown(f"""
     
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
     
-    /* CỤM KHUNG TÊN ĐỀ DỜI LÊN CỰC MẠNH THEO YÊU CẦU */
+    /* CỤM KHUNG TÊN ĐỀ DỜI LÊN CỰC MẠNH */
     .move-up-container {{
         position: relative;
-        top: -130px; /* TĂNG LỰC ĐẨY LÊN THÊM ~2CM */
+        top: -130px; 
         text-align: center;
         z-index: 99;
-        margin-bottom: -100px; /* THU HẸP KHOẢNG TRỐNG PHÍA DƯỚI */
+        margin-bottom: -100px;
     }}
     
     .mini-quiz-box {{
@@ -54,6 +54,15 @@ st.markdown(f"""
         border: 1px solid #FFD700;
         box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         margin-bottom: 5px;
+    }}
+
+    /* CANH GIỮA CHO Ô NHẬP TÊN */
+    .center-container {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
     }}
 
     .fixed-footer {{
@@ -183,8 +192,11 @@ else:
             </div>
         ''', unsafe_allow_html=True)
 
-        st.markdown('<div class="card" style="margin-top:-30px;">', unsafe_allow_html=True)
-        student_name = st.text_input("Bước 1: Nhập tên của em để hiện đề bài:", key="student_name").strip()
+        # KHỐI NHẬP TÊN CANH GIỮA
+        st.markdown('<div class="center-container">', unsafe_allow_html=True)
+        st.markdown('<div class="card" style="margin-top:-30px; width: 100%; max-width: 600px;">', unsafe_allow_html=True)
+        student_name = st.text_input("MỜI CÁC EM NHẬP HỌ TÊN ĐỂ LÀM BÀI:", key="student_name").strip()
+        st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         
         if student_name:
@@ -231,8 +243,8 @@ else:
                 st.write("Chưa có bạn nào nộp bài, em hãy là người đầu tiên!")
             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.warning("Em hãy nhập tên ở trên để xem câu hỏi nhé!")
+            st.warning("Em hãy nhập họ tên ở trên để xem câu hỏi nhé!")
     else:
-        st.info("Chào mừng các em! Vui lòng dùng đúng link Thầy gửi để làm bài.")
+        st.info("Chào mừng các em! Vui lòng dùng đúng link Thầy Thái gửi để làm bài.")
 
 st.markdown('</div>', unsafe_allow_html=True)
