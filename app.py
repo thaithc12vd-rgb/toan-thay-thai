@@ -30,28 +30,30 @@ st.markdown(f"""
     .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
     .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
     
-    /* ĐIỀU CHỈNH KHOẢNG CÁCH CHÍNH */
+    /* ĐIỀU CHỈNH KHOẢNG CÁCH NỘI DUNG CHÍNH */
     .main-content {{ margin-top: 100px; margin-bottom: 80px; padding: 0 20px; }}
     
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
     
-    /* KHUNG ĐANG LÀM ĐỀ - DỜI LÊN CÁCH CHỮ KÝ ~2CM */
-    .mini-quiz-wrapper {{
+    /* KHỐI DI CHUYỂN SÁT LÊN TRÊN (~2CM) */
+    .move-up-container {{
+        position: relative;
+        top: -65px; /* ÉP CẢ CỤM DỜI LÊN CAO SÁT CHỮ KÝ */
         text-align: center;
-        margin-top: -30px; /* Ép cụm này dời lên cao */
-        margin-bottom: 10px;
+        z-index: 99;
     }}
     
     .mini-quiz-box {{
         background-color: #1A2238; 
         color: #FFD700; 
-        padding: 4px 15px; 
+        padding: 5px 20px; 
         border-radius: 20px; 
         display: inline-block; 
         font-size: 12px; 
         font-weight: bold;
         border: 1px solid #FFD700;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        margin-bottom: 10px;
     }}
 
     .fixed-footer {{
@@ -61,8 +63,12 @@ st.markdown(f"""
         font-size: 14px; z-index: 1001; border-top: 1px solid rgba(0,79,152,0.1);
     }}
     
-    /* ÉP ĐƯỜNG GẠCH NGANG SÁT LÊN */
-    .tight-hr {{ margin: 5px 0 15px 0 !important; border: 0; border-top: 1px solid rgba(0,0,0,0.1); }}
+    .ultra-tight-hr {{ 
+        margin: 0 auto 15px auto !important; 
+        border: 0; 
+        border-top: 1px solid rgba(0,0,0,0.1); 
+        width: 100%;
+    }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -170,11 +176,15 @@ if role == "teacher":
 else:
     # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url and ma_de_url in library:
-        # CỤM KHUNG Tên đề dời lên sát
-        st.markdown(f'<div class="mini-quiz-wrapper"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
-        st.markdown('<hr class="tight-hr">', unsafe_allow_html=True)
+        # CỤM KHỐI DỜI LÊN SÁT CHỮ KÝ
+        st.markdown(f'''
+            <div class="move-up-container">
+                <div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div>
+                <hr class="ultra-tight-hr">
+            </div>
+        ''', unsafe_allow_html=True)
 
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="card" style="margin-top:-50px;">', unsafe_allow_html=True)
         student_name = st.text_input("Bước 1: Nhập tên của em để hiện đề bài:", key="student_name").strip()
         st.markdown('</div>', unsafe_allow_html=True)
         
@@ -216,14 +226,4 @@ else:
             st.markdown("### 🟢 DANH SÁCH CÁC BẠN ĐÃ HOÀN THÀNH")
             all_res = load_db(RESULT_PATH).get(ma_de_url, [])
             if all_res:
-                df_res = pd.DataFrame(all_res).sort_index(ascending=False)
-                st.table(df_res[["time", "student", "score"]].rename(columns={"time":"Giờ nộp", "student":"Học sinh", "score":"Điểm"}))
-            else:
-                st.write("Chưa có bạn nào nộp bài, em hãy là người đầu tiên!")
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.warning("Em hãy nhập tên ở trên để xem câu hỏi nhé!")
-    else:
-        st.info("Chào mừng các em! Vui lòng dùng đúng link Thầy gửi để làm bài.")
-
-st.markdown('</div>', unsafe_allow_html=True)
+                df_res = pd.DataFrame(all_res).sort_index(ascending=
