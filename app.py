@@ -30,15 +30,14 @@ st.markdown(f"""
     .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
     .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
     
-    /* ĐIỀU CHỈNH KHOẢNG CÁCH NỘI DUNG CHÍNH */
     .main-content {{ margin-top: 100px; margin-bottom: 80px; padding: 0 20px; }}
     
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
     
-    /* KHỐI DI CHUYỂN SÁT LÊN TRÊN (~2CM) */
+    /* CỤM KHUNG TÊN ĐỀ DỜI LÊN SÁT CHỮ KÝ (~2CM) */
     .move-up-container {{
         position: relative;
-        top: -65px; /* ÉP CẢ CỤM DỜI LÊN CAO SÁT CHỮ KÝ */
+        top: -65px; 
         text-align: center;
         z-index: 99;
     }}
@@ -176,7 +175,6 @@ if role == "teacher":
 else:
     # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url and ma_de_url in library:
-        # CỤM KHỐI DỜI LÊN SÁT CHỮ KÝ
         st.markdown(f'''
             <div class="move-up-container">
                 <div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div>
@@ -226,4 +224,15 @@ else:
             st.markdown("### 🟢 DANH SÁCH CÁC BẠN ĐÃ HOÀN THÀNH")
             all_res = load_db(RESULT_PATH).get(ma_de_url, [])
             if all_res:
-                df_res = pd.DataFrame(all_res).sort_index(ascending=
+                # SỬA LỖI TRỌNG TÂM: Đóng ngoặc đầy đủ cho hàm DataFrame và sort_index
+                df_res = pd.DataFrame(all_res).sort_index(ascending=False)
+                st.table(df_res[["time", "student", "score"]].rename(columns={"time":"Giờ nộp", "student":"Học sinh", "score":"Điểm"}))
+            else:
+                st.write("Chưa có bạn nào nộp bài, em hãy là người đầu tiên!")
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.warning("Em hãy nhập tên ở trên để xem câu hỏi nhé!")
+    else:
+        st.info("Chào mừng các em! Vui lòng dùng đúng link Thầy gửi để làm bài.")
+
+st.markdown('</div>', unsafe_allow_html=True)
