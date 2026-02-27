@@ -30,23 +30,28 @@ st.markdown(f"""
     .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
     .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
     
-    /* ĐẨY NỘI DUNG CHÍNH LÊN SÁT HEADER HƠN */
+    /* ĐIỀU CHỈNH KHOẢNG CÁCH CHÍNH */
     .main-content {{ margin-top: 100px; margin-bottom: 80px; padding: 0 20px; }}
     
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
     
-    /* KHUNG ĐANG LÀM ĐỀ NHỎ GỌN - DỊCH LÊN SÁT */
+    /* KHUNG ĐANG LÀM ĐỀ - DỜI LÊN CÁCH CHỮ KÝ ~2CM */
+    .mini-quiz-wrapper {{
+        text-align: center;
+        margin-top: -30px; /* Ép cụm này dời lên cao */
+        margin-bottom: 10px;
+    }}
+    
     .mini-quiz-box {{
         background-color: #1A2238; 
         color: #FFD700; 
-        padding: 4px 12px; 
-        border-radius: 15px; 
+        padding: 4px 15px; 
+        border-radius: 20px; 
         display: inline-block; 
-        font-size: 11px; 
+        font-size: 12px; 
         font-weight: bold;
-        margin-top: -15px;
-        margin-bottom: 5px;
         border: 1px solid #FFD700;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }}
 
     .fixed-footer {{
@@ -56,8 +61,8 @@ st.markdown(f"""
         font-size: 14px; z-index: 1001; border-top: 1px solid rgba(0,79,152,0.1);
     }}
     
-    /* THU HẸP KHOẢNG CÁCH ĐƯỜNG GẠCH NGANG */
-    hr {{ margin: 5px 0 !important; }}
+    /* ÉP ĐƯỜNG GẠCH NGANG SÁT LÊN */
+    .tight-hr {{ margin: 5px 0 15px 0 !important; border: 0; border-top: 1px solid rgba(0,0,0,0.1); }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -165,9 +170,9 @@ if role == "teacher":
 else:
     # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url and ma_de_url in library:
-        # SÁT LÊN TRÊN: Khung thông tin đề nhỏ gọn
-        st.markdown(f'<div style="text-align:center;"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
-        st.divider()
+        # CỤM KHUNG Tên đề dời lên sát
+        st.markdown(f'<div class="mini-quiz-wrapper"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
+        st.markdown('<hr class="tight-hr">', unsafe_allow_html=True)
 
         st.markdown('<div class="card">', unsafe_allow_html=True)
         student_name = st.text_input("Bước 1: Nhập tên của em để hiện đề bài:", key="student_name").strip()
