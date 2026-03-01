@@ -49,9 +49,16 @@ st.markdown(f"""
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
     .fixed-footer {{ position: fixed; bottom: 0; left: 0; width: 100%; background-color: #C5D3E8; color: #004F98; text-align: center; padding: 10px 0; font-weight: bold; font-size: 14px; z-index: 1001; border-top: 1px solid rgba(0,79,152,0.1); }}
     
+    /* PHỤC HỒI STYLE GIẤY KHEN TRANG TRỌNG */
     .certificate-box {{
-        border: 10px double #FFD700; padding: 30px; background: #fff; text-align: center; margin-top: 20px;
+        border: 10px double #FFD700; padding: 30px; background: #fff;
+        text-align: center; position: relative; margin-top: 20px;
+        background-image: url('https://www.transparenttextures.com/patterns/paper.png');
     }}
+    .cert-title {{ font-size: 28px; font-weight: 900; color: #d32f2f; text-transform: uppercase; }}
+    .cert-name {{ font-size: 35px; font-weight: bold; color: #004F98; margin: 15px 0; border-bottom: 2px solid #EEE; display: inline-block; padding: 0 20px; }}
+    .cert-rank {{ font-size: 20px; font-weight: bold; color: #333; }}
+    .cert-badge {{ font-size: 50px; margin: 10px 0; }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -153,7 +160,6 @@ if role == "teacher":
                 st.text_input(f"Đáp án {i}", value=va, key=f"a_{st.session_state.ver_key}_{i}")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url in library:
         if not st.session_state.is_accepted:
             st.markdown('<div class="card" style="text-align:center;"><h3>MỜI EM NHẬP HỌ TÊN</h3>', unsafe_allow_html=True)
@@ -185,12 +191,23 @@ else:
             if st.session_state.current_rank <= 10:
                 rank = st.session_state.current_rank
                 badge = "💎" if rank==1 else ("🥇" if rank==2 else ("🥈" if rank==3 else "🥉"))
-                st.markdown(f'<div class="certificate-box"><h2>{badge} GIẤY KHEN</h2><h3>{st.session_state.student_name}</h3><p>Hạng: {rank} | Điểm: {st.session_state.final_score}</p></div>', unsafe_allow_html=True)
+                title = "KIM CƯƠNG" if rank==1 else ("VÀNG" if rank==2 else ("BẠC" if rank==3 else "ĐỒNG"))
+                
+                # HIỂN THỊ GIẤY KHEN TRANG TRỌNG
+                st.markdown(f"""
+                <div class="certificate-box">
+                    <div class="cert-badge">{badge}</div>
+                    <div class="cert-title">GIẤY KHEN VINH DANH</div>
+                    <p style="margin:5px 0;">Hệ thống Toán Thầy Thái chúc mừng em:</p>
+                    <div class="cert-name">{st.session_state.student_name}</div>
+                    <div class="cert-rank">Đã xuất sắc đạt danh hiệu: <br><span style="color:#d32f2f; font-size:24px;">HỌC SINH {title}</span></div>
+                    <p style="margin-top:20px; font-style: italic; color: #666;">Hạng: {rank} | Điểm: {st.session_state.final_score} | Mã đề: {ma_de_url}</p>
+                </div>
+                """, unsafe_allow_html=True)
                 st.download_button("📥 TẢI GIẤY KHEN", data=f"Giấy Khen Top {rank}: {st.session_state.student_name}", file_name=f"GiayKhen_{st.session_state.student_name}.txt")
             
             st.markdown(f'<div class="card"><h3>KẾT QUẢ: {st.session_state.final_score} ĐIỂM</h3></div>', unsafe_allow_html=True)
             
-            # --- PHỤC HỒI BẢNG HIỂN THỊ CÁC EM ĐANG LIVE BÊN HỌC SINH ---
             st.markdown('<div class="card"><h3>📊 BẢNG XẾP HẠNG TRỰC TIẾP</h3>', unsafe_allow_html=True)
             all_dt = doc_file(FILE_RES).get(ma_de_url, [])
             if all_dt:
