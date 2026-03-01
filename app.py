@@ -53,23 +53,41 @@ st.markdown(f"""
     .hide-btn button {{ background-color: #6c757d !important; color: white !important; }}
     .download-btn button {{ background-color: #28a745 !important; color: white !important; font-weight: bold !important; margin-bottom: 10px; }}
 
-    /* --- NÂNG CẤP GIẤY KHEN CHUYÊN NGHIỆP --- */
+    /* --- GIẤY KHEN CĂN GIỮA & HỌA TIẾT --- */
     .certificate-container {{
-        background: #fff; border: 15px double #b8860b; padding: 40px; 
-        width: 100%; max-width: 800px; margin: 20px auto; position: relative; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2); background-image: radial-gradient(#fff 90%, #f9f9f9);
+        background: #fff; 
+        border: 15px double #b8860b; 
+        padding: 50px; 
+        width: 100%; max-width: 850px; 
+        margin: 20px auto; 
+        position: relative; 
+        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        /* Họa tiết nhẹ chìm */
+        background-image: 
+            linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)),
+            url('https://www.transparenttextures.com/patterns/cream-paper.png');
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Căn giữa tất cả theo chiều ngang */
+        text-align: center;  /* Căn giữa chữ */
     }}
-    .cert-header {{ font-family: 'Times New Roman', serif; color: #b8860b; font-size: 38px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0; }}
-    .cert-sub {{ font-size: 18px; font-style: italic; color: #555; margin-bottom: 25px; }}
-    .cert-medal-box {{ font-size: 70px; margin: 15px 0; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2)); }}
-    .cert-award-text {{ font-size: 20px; color: #333; }}
+    .cert-header {{ font-family: 'Times New Roman', serif; color: #b8860b; font-size: 42px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }}
+    .cert-sub {{ font-size: 20px; font-style: italic; color: #666; margin-bottom: 25px; }}
+    .cert-award-text {{ font-size: 22px; color: #333; margin-bottom: 10px; }}
     .cert-student-name {{ 
-        font-family: 'Georgia', serif; font-size: 45px; font-weight: bold; color: #004F98; 
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1); border-bottom: 3px double #b8860b; 
-        display: inline-block; padding: 0 40px; margin: 15px 0; 
+        font-family: 'Georgia', serif; font-size: 50px; font-weight: bold; color: #004F98; 
+        border-bottom: 3px double #b8860b; 
+        padding: 5px 50px; margin: 15px 0; 
     }}
-    .cert-rank {{ font-size: 24px; font-weight: bold; color: #d32f2f; margin: 10px 0; }}
-    .cert-footer {{ margin-top: 30px; font-size: 16px; color: #444; line-height: 1.6; border-top: 1px solid #eee; padding-top: 20px; }}
+    .cert-medal-box {{ font-size: 80px; margin: 10px 0; }}
+    .cert-rank {{ font-size: 26px; font-weight: bold; color: #d32f2f; }}
+    .cert-footer {{ 
+        margin-top: 40px; 
+        width: 100%;
+        font-size: 18px; color: #444; 
+        border-top: 1px solid #ddd; 
+        padding-top: 20px; 
+    }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -232,7 +250,7 @@ else:
                 medal = "💎" if st.session_state.current_rank == 1 else ("🥇" if st.session_state.current_rank == 2 else ("🥈" if st.session_state.current_rank == 3 else "🥉"))
                 title_medal = "KIM CƯƠNG" if st.session_state.current_rank == 1 else ("VÀNG" if st.session_state.current_rank == 2 else ("BẠC" if st.session_state.current_rank == 3 else "ĐỒNG"))
                 
-                # HTML Giấy khen Chuyên Nghiệp
+                # HTML Giấy khen CĂN GIỮA & HỌA TIẾT
                 cert_html = f"""
                 <div class="certificate-container">
                     <div class="cert-header">GIẤY KHEN DANH DỰ</div>
@@ -243,7 +261,7 @@ else:
                     <div class="cert-rank">Đã xuất sắc đạt hạng {st.session_state.current_rank} - DANH HIỆU {title_medal}</div>
                     <div class="cert-footer">
                         Đề kiểm tra: {ma_de_url} | Ngày cấp: {datetime.now().strftime('%d/%m/%Y')}<br>
-                        <strong>Chúc em luôn giữ vững phong độ và đạt nhiều thành tích cao!</strong>
+                        <strong>Chúc em luôn học tập tốt và gặt hái nhiều thành công!</strong>
                     </div>
                 </div>
                 """
