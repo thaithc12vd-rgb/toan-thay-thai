@@ -12,7 +12,7 @@ st.set_page_config(page_title="Toan Lop 3 - Thay Thai", layout="wide")
 try:
     query_params = st.query_params
     ma_de_url = query_params.get("de", "")
-    role = query_params.get("role", "teacher")
+    role = query_params.get("role", "student")
 except:
     ma_de_url = ""
     role = "student"
@@ -42,7 +42,6 @@ st.markdown(f"""
     .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
     .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
     
-    /* HIỂN THỊ TÊN HỌC SINH VÀ GẠCH NGANG 3CM */
     .student-display {{
         text-align: center; color: #d32f2f; font-weight: bold; font-size: 18px; margin-top: 5px;
     }}
@@ -133,7 +132,10 @@ if role == "teacher":
                 st.session_state.last_de = de_chon; st.session_state.ver_key += 1; st.rerun()
             
             m_de = st.text_input("👉 Mã đề bài:", value=de_chon if de_chon != "-- Tạo mới --" else "").strip()
-            if m_de: st.info(f"🔗 Link: https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}")
+            
+            # --- ĐÃ SỬA: ĐẢM BẢO CHỈ XUẤT HIỆN LINK HỌC SINH ---
+            if m_de: 
+                st.info(f"🔗 Link gửi học sinh: https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}&role=student")
             
             if st.button("🚀 LƯU ĐỀ VÀO KHO"):
                 if m_de:
