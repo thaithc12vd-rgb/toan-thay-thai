@@ -52,17 +52,6 @@ st.markdown(f"""
     .live-btn button {{ background-color: #d32f2f !important; color: white !important; font-weight: bold !important; }}
     .hide-btn button {{ background-color: #6c757d !important; color: white !important; }}
     .download-btn button {{ background-color: #28a745 !important; color: white !important; font-weight: bold !important; margin-bottom: 10px; }}
-
-    /* STYLE GIẤY KHEN */
-    .certificate-box {{
-        border: 10px double #FFD700; padding: 30px; background: #fff;
-        text-align: center; position: relative; margin-top: 20px;
-        background-image: url('https://www.transparenttextures.com/patterns/paper.png');
-    }}
-    .cert-title {{ font-size: 28px; font-weight: 900; color: #d32f2f; text-transform: uppercase; }}
-    .cert-name {{ font-size: 35px; font-weight: bold; color: #004F98; margin: 15px 0; border-bottom: 2px solid #EEE; display: inline-block; padding: 0 20px; }}
-    .cert-rank {{ font-size: 20px; font-weight: bold; color: #333; }}
-    .cert-badge {{ font-size: 50px; margin: 10px 0; }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -108,21 +97,22 @@ if role == "teacher":
         st.markdown('<div class="card">', unsafe_allow_html=True)
         pwd = st.text_input("Mật mã quản trị", type="password", key="p_admin")
         if pwd == "thai2026":
-            # --- TẢI FILE MẪU 10 CÂU ---
+            # --- NÚT TẢI FILE MẪU ---
             template_df = pd.DataFrame({
-                "Câu": [f"Câu {i}" for i in range(1, 11)],
-                "Nội dung câu hỏi": [f"Câu hỏi số {i}" for i in range(1, 11)],
-                "Đáp án": ["1" for i in range(1, 11)]
+                "Câu": ["Câu 1", "Câu 2", "Câu 3"],
+                "Nội dung câu hỏi": ["5 + 5 = ?", "Hình tam giác có mấy cạnh?", "10 - 2 = ?"],
+                "Đáp án": ["10", "3", "8"]
             })
             towrap = io.BytesIO()
             template_df.to_csv(towrap, index=False, encoding='utf-8-sig')
             st.markdown('<div class="download-btn">', unsafe_allow_html=True)
-            st.download_button(label="📥 TẢI FILE MẪU (10 CÂU)", data=towrap.getvalue(), file_name="mau_10_cau_thay_thai.csv", mime="text/csv")
+            st.download_button(label="📥 TẢI FILE MẪU", data=towrap.getvalue(), file_name="mau_de_toan_thay_thai.csv", mime="text/csv")
             st.markdown('</div>', unsafe_allow_html=True)
 
             up_f = st.file_uploader("📤 TẢI CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
             if up_f:
                 df = pd.read_csv(io.BytesIO(up_f.getvalue()), encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
+                # Dò theo cột: Nội dung câu hỏi và Đáp án
                 st.session_state.data_step3 = [{"q": str(r.get("Nội dung câu hỏi", r.iloc[1])), "a": str(r.get("Đáp án", r.iloc[2]))} for _, r in df.iterrows()]
                 st.session_state.ver_key += 1; st.rerun()
             
@@ -161,12 +151,11 @@ if role == "teacher":
                 st.code(f"https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}")
             if st.button("🚀 LƯU ĐỀ VÀO KHO"):
                 if m_de:
-                    n_qs = len(st.session_state.data_step3) if st.session_state.data_step3 else 10
+                    n_qs = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
                     library[m_de] = [{"q": st.session_state.get(f"q_{st.session_state.ver_key}_{i}", ""), "a": st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")} for i in range(1, n_qs + 1)]
                     ghi_file(FILE_DB, library); st.success("Đã lưu!"); st.rerun()
             
-            # --- HIỂN THỊ 10 CÂU ---
-            n_q = len(st.session_state.data_step3) if st.session_state.data_step3 else 10
+            n_q = len(st.session_state.data_step3) if st.session_state.data_step3 else 5
             for i in range(1, n_q + 1):
                 vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
                 va = st.session_state.data_step3[i-1]["a"] if i <= len(st.session_state.data_step3) else ""
@@ -199,11 +188,13 @@ else:
                 ans_dict[f"Câu {idx}"] = st.text_input(f"Nhập kết quả {idx}", key=f"ans_{idx}", label_visibility="collapsed", autocomplete="off")
             
             if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
+                # CHẤM ĐIỂM DÒ THEO TỪNG CÂU VÀ ĐÁP ÁN TRONG FILE
                 dung = 0
                 for idx, it in enumerate(library[ma_de_url], 1):
                     cau_tra_loi = str(ans_dict.get(f"Câu {idx}", "")).strip().lower()
                     dap_an_dung = str(it["a"]).strip().lower()
-                    if cau_tra_loi == dap_an_dung: dung += 1
+                    if cau_tra_loi == dap_an_dung:
+                        dung += 1
                 
                 diem = int((dung / len(library[ma_de_url])) * 10)
                 dur_sec = int(time.time() - st.session_state.start_time)
@@ -225,24 +216,6 @@ else:
 
         if st.session_state.is_submitted:
             st.markdown(f'<div class="card result-card"><h2>KẾT QUẢ: {st.session_state.final_score} ĐIỂM</h2><div class="rank-text">BẠN ĐANG ĐỨNG THỨ HẠNG SỐ: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
-            
-            # --- TỰ ĐỘNG XUẤT GIẤY KHEN CHO TOP 10 ---
-            if st.session_state.current_rank <= 10:
-                rank = st.session_state.current_rank
-                badge = "💎" if rank==1 else ("🥇" if rank==2 else ("🥈" if rank==3 else "🥉"))
-                title = "KIM CƯƠNG" if rank==1 else ("VÀNG" if rank==2 else ("BẠC" if rank==3 else "ĐỒNG"))
-                
-                st.markdown(f"""
-                <div class="certificate-box">
-                    <div class="cert-badge">{badge}</div>
-                    <div class="cert-title">GIẤY KHEN VINH DANH</div>
-                    <p style="margin:5px 0;">Hệ thống Toán Thầy Thái chúc mừng em:</p>
-                    <div class="cert-name">{st.session_state.student_name}</div>
-                    <div class="cert-rank">Đã xuất sắc đạt danh hiệu: <br><span style="color:#d32f2f; font-size:24px;">HỌC SINH {title}</span></div>
-                    <p style="margin-top:20px; font-style: italic; color: #666;">Hạng: {rank} | Điểm: {st.session_state.final_score} | Mã đề: {ma_de_url}</p>
-                </div>
-                """, unsafe_allow_html=True)
-
             st.markdown('<div class="card">', unsafe_allow_html=True)
             all_dt = doc_file(FILE_RES).get(ma_de_url, [])
             st.markdown(f"### 📊 TỔNG SỐ BẠN ĐÃ LÀM BÀI: {len(all_dt)}")
