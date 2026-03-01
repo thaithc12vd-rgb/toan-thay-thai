@@ -53,7 +53,7 @@ st.markdown(f"""
     .hide-btn button {{ background-color: #6c757d !important; color: white !important; }}
     .download-btn button {{ background-color: #28a745 !important; color: white !important; font-weight: bold !important; margin-bottom: 10px; }}
 
-    /* --- GIẤY KHEN VĂN HÓA VIỆT NAM (CHỈ THÊM HỌA TIẾT) --- */
+    /* --- GIẤY KHEN VỚI TRỐNG ĐỒNG CHÌM (CHỈ THÊM) --- */
     .certificate-container {{
         background: #fff; 
         border: 20px solid transparent;
@@ -78,20 +78,7 @@ st.markdown(f"""
         align-items: center; 
         text-align: center;  
     }}
-    /* Thêm Quốc huy chìm ở giữa */
-    .certificate-container::before {{
-        content: "";
-        position: absolute;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        width: 300px; height: 300px;
-        background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Emblem_of_Vietnam.svg/1024px-Emblem_of_Vietnam.svg.png');
-        background-size: contain;
-        background-repeat: no-repeat;
-        opacity: 0.04; /* Rất mờ */
-        z-index: 0;
-    }}
-
+    
     .cert-content-wrapper {{ position: relative; z-index: 1; width: 100%; }}
 
     .cert-header {{ font-family: 'Times New Roman', serif; color: #a57c00; font-size: 45px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }}
@@ -268,7 +255,7 @@ else:
                     cur_prof = doc_file(FILE_PROF)
                     sk = f"{st.session_state.student_name}_{ma_de_url}"
                     cur_prof[sk]["top10_count"] = cur_prof[sk].get("top10_count", 0) + 1
-                    ghi_file(FILE_PROF, current_profiles)
+                    ghi_file(FILE_PROF, cur_prof)
                 st.session_state.final_score = diem; st.session_state.is_submitted = True; st.balloons(); st.rerun()
 
         if st.session_state.is_submitted:
@@ -278,7 +265,7 @@ else:
                 medal = "💎" if st.session_state.current_rank == 1 else ("🥇" if st.session_state.current_rank == 2 else ("🥈" if st.session_state.current_rank == 3 else "🥉"))
                 title_medal = "KIM CƯƠNG" if st.session_state.current_rank == 1 else ("VÀNG" if st.session_state.current_rank == 2 else ("BẠC" if st.session_state.current_rank == 3 else "ĐỒNG"))
                 
-                # HTML Giấy khen CĂN GIỮA & HỌA TIẾT VIỆT NAM
+                # HTML Giấy khen CĂN GIỮA & HỌA TIẾT VIỆT NAM (CHỈ THÊM)
                 cert_html = f"""
                 <div class="certificate-container">
                     <div class="cert-content-wrapper">
