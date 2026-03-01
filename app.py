@@ -145,16 +145,23 @@ if role == "teacher":
             st.markdown('<div class="card">', unsafe_allow_html=True)
             list_de = list(library.keys())
             de_chon = st.selectbox("📂 Chọn đề cũ:", options=["-- Tạo mới --"] + list_de)
+            
+            # Khắc phục lỗi nạp đề cũ: Cập nhật trực tiếp vào session_state
             if de_chon != "-- Tạo mới --" and st.session_state.get('last_de') != de_chon:
                 st.session_state.data_step3 = library.get(de_chon, [])
                 st.session_state.last_de = de_chon; st.session_state.ver_key += 1; st.rerun()
+            
             m_de = st.text_input("👉 Mã đề bài:", value=de_chon if de_chon != "-- Tạo mới --" else "").strip()
             if m_de:
                 st.code(f"https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}")
+            
             if st.button("🚀 LƯU ĐỀ VÀO KHO"):
                 if m_de:
+                    # Ghi nhận 10 câu từ các ô nhập liệu vào thư viện
                     library[m_de] = [{"q": st.session_state.get(f"q_{st.session_state.ver_key}_{i}", ""), "a": st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")} for i in range(1, 11)]
-                    ghi_file(FILE_DB, library); st.success("Đã lưu vào kho!"); st.rerun()
+                    ghi_file(FILE_DB, library) # Lưu thật sự xuống file json
+                    st.success(f"Đã lưu mã đề {m_de} thành công!")
+                    time.sleep(1); st.rerun()
             
             for i in range(1, 11):
                 vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
@@ -163,6 +170,7 @@ if role == "teacher":
                 st.text_input(f"Đáp án {i}", value=va, key=f"a_{st.session_state.ver_key}_{i}")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
+    # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url in library:
         st.markdown(f'<div class="move-up-container"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
         if not st.session_state.is_accepted:
@@ -173,15 +181,19 @@ else:
                 if st.button("ĐỒNG Ý", use_container_width=True, type="primary"):
                     if name_in:
                         sk = f"{name_in}_{ma_de_url}"
-                        cur_prof = doc_file(FILE_PROF)
-                        prof = cur_prof.get(sk, {"attempts": 0, "top10_count": 0})
-                        if prof["attempts"] >= 20:
-                            st.error("Hết lượt (Tối đa 20 lần)!")
+                        # Logic khóa 20 lần và ghi nhận đếm lượt ngay lập tức
+                        current_profiles = doc_file(FILE_PROF)
+                        prof_data = current_profiles.get(sk, {"attempts": 0, "top10_count": 0})
+                        
+                        if prof_data["attempts"] >= 20:
+                            st.error("Hết lượt (Bạn đã làm đề này 20 lần)!")
                         else:
-                            prof["attempts"] += 1
-                            cur_prof[sk] = prof
-                            ghi_file(FILE_PROF, cur_prof)
-                            st.session_state.student_name = name_in; st.session_state.is_accepted = True
+                            prof_data["attempts"] += 1
+                            current_profiles[sk] = prof_data
+                            ghi_file(FILE_PROF, current_profiles)
+                            
+                            st.session_state.student_name = name_in
+                            st.session_state.is_accepted = True
                             st.session_state.start_time = time.time(); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         
@@ -194,25 +206,29 @@ else:
             
             if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
                 dung = 0
-                q_list = [x for x in library[ma_de_url] if x["q"]]
+                q_list_valid = [x for x in library[ma_de_url] if x["q"]]
                 for idx, it in enumerate(library[ma_de_url], 1):
                     if it["q"] and str(ans_dict.get(f"Câu {idx}", "")).strip().lower() == str(it["a"]).strip().lower():
                         dung += 1
-                diem = int((dung / len(q_list)) * 10) if q_list else 0
+                diem = int((dung / len(q_list_valid)) * 10) if q_list_valid else 0
                 dur_sec = int(time.time() - st.session_state.start_time)
                 phut, giay = divmod(dur_sec, 60)
                 tg_lam = f"{phut} phút {giay} giây"
+                
                 r_all = doc_file(FILE_RES); t_now = datetime.now()
                 if ma_de_url not in r_all: r_all[ma_de_url] = []
                 r_all[ma_de_url].append({"full_time": t_now.strftime("%Y-%m-%d %H:%M:%S"), "time": tg_lam, "duration": dur_sec, "student": st.session_state.student_name, "score": diem})
                 ghi_file(FILE_RES, r_all)
+                
                 dt = pd.DataFrame(r_all[ma_de_url]).sort_values(by=['score', 'duration'], ascending=[False, True]).reset_index(drop=True)
                 st.session_state.current_rank = dt[dt['student'] == st.session_state.student_name].index[0] + 1
+                
                 if st.session_state.current_rank <= 10:
-                    cur_prof = doc_file(FILE_PROF)
+                    current_profiles = doc_file(FILE_PROF)
                     sk = f"{st.session_state.student_name}_{ma_de_url}"
-                    cur_prof[sk]["top10_count"] = cur_prof[sk].get("top10_count", 0) + 1
-                    ghi_file(FILE_PROF, cur_prof)
+                    current_profiles[sk]["top10_count"] = current_profiles[sk].get("top10_count", 0) + 1
+                    ghi_file(FILE_PROF, current_profiles)
+                
                 st.session_state.final_score = diem; st.session_state.is_submitted = True; st.balloons(); st.rerun()
 
         if st.session_state.is_submitted:
