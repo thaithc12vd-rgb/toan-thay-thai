@@ -42,20 +42,17 @@ st.markdown(f"""
     .main-title {{ font-size: 30px; font-weight: 900; margin: 0; }}
     .sub-title {{ font-size: 11px; font-weight: bold; margin: 0; color: #004F98; opacity: 0.9; }}
     
-    /* STYLE HIỂN THỊ TÊN HỌC SINH VÀ GẠCH NGANG */
-    .student-header {{ font-size: 20px; font-weight: bold; color: #d32f2f; margin-top: 5px; text-align: center; }}
+    .student-header {{ font-size: 20px; font-weight: bold; color: #d32f2f; margin-top: 5cm; text-align: center; }}
     .line-decorator {{ width: 3cm; height: 3px; background-color: #004F98; margin: 5px auto; border-radius: 2px; }}
 
     .main-content {{ margin-top: 150px; margin-bottom: 80px; padding: 0 20px; }}
     .card {{ background-color: white; border-radius: 15px; padding: 20px; border-top: 8px solid #004F98; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 15px; }}
-    .move-up-container {{ position: relative; top: -130px; text-align: center; z-index: 99; margin-bottom: -120px; }}
     .mini-quiz-box {{ background-color: #1A2238; color: #FFD700; padding: 5px 20px; border-radius: 20px; display: inline-block; font-size: 12px; font-weight: bold; border: 1px solid #FFD700; }}
     .fixed-footer {{ position: fixed; bottom: 0; left: 0; width: 100%; background-color: #C5D3E8; color: #004F98; text-align: center; padding: 10px 0; font-weight: bold; font-size: 14px; z-index: 1001; border-top: 1px solid rgba(0,79,152,0.1); }}
     
     .certificate-box {{
         border: 10px double #FFD700; padding: 30px; background: #fff;
         text-align: center; position: relative; margin-top: 20px;
-        background-image: url('https://www.transparenttextures.com/patterns/paper.png');
     }}
 </style>
 <div class="sticky-header">
@@ -136,8 +133,7 @@ if role == "teacher":
                 st.code(f"https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}")
             if st.button("🚀 LƯU ĐỀ VÀO KHO"):
                 if m_de:
-                    n_qs = len(st.session_state.data_step3) if st.session_state.data_step3 else 10
-                    library[m_de] = [{"q": st.session_state.get(f"q_{st.session_state.ver_key}_{i}", ""), "a": st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")} for i in range(1, n_qs + 1)]
+                    library[m_de] = [{"q": st.session_state.get(f"q_{st.session_state.ver_key}_{i}", ""), "a": st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")} for i in range(1, 11)]
                     ghi_file(FILE_DB, library); st.success("Đã lưu!"); st.rerun()
 
             for i in range(1, 11):
@@ -147,10 +143,13 @@ if role == "teacher":
                 st.text_input(f"Đáp án {i}", value=va, key=f"a_{st.session_state.ver_key}_{i}")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
+    # --- GIAO DIỆN HỌC SINH ---
     if ma_de_url in library:
-        st.markdown(f'<div class="move-up-container"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
+        # Hiển thị mã đề đang làm
+        st.markdown(f'<div style="text-align: center; margin-top: 10px;"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
+        
         if not st.session_state.is_accepted:
-            st.markdown('<div class="center-wrapper-top"><p class="invite-text">MỜI CÁC EM NHẬP HỌ TÊN ĐỂ LÀM BÀI</p>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align: center; margin-top: 20px;"><p style="font-weight: bold; color: #004F98;">MỜI CÁC EM NHẬP HỌ TÊN ĐỂ LÀM BÀI</p>', unsafe_allow_html=True)
             c1, c2, c3 = st.columns([1, 2, 1])
             with c2:
                 name_in = st.text_input("", key="st_name_step", label_visibility="collapsed").strip()
@@ -160,6 +159,7 @@ else:
                         st.session_state.start_time = time.time(); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         
+        # ĐÃ SỬA: Hiển thị câu hỏi khi đã chấp nhận tên
         if st.session_state.is_accepted and not st.session_state.is_submitted:
             ans_dict = {}
             for idx, item in enumerate(library[ma_de_url], 1):
@@ -183,8 +183,6 @@ else:
                 rank = st.session_state.current_rank
                 badge = "💎" if rank==1 else ("🥇" if rank==2 else ("🥈" if rank==3 else "🥉"))
                 title = "KIM CƯƠNG" if rank==1 else ("VÀNG" if rank==2 else ("BẠC" if rank==3 else "ĐỒNG"))
-                
-                # Hiển thị Giấy khen
                 cert_content = f"""
                 <div class="certificate-box">
                     <div style="font-size:50px;">{badge}</div>
@@ -196,11 +194,8 @@ else:
                 </div>
                 """
                 st.markdown(cert_content, unsafe_allow_html=True)
-                
-                # Nút tải giấy khen
                 st.download_button(label="📥 TẢI GIẤY KHEN VỀ MÁY", data=cert_content, file_name=f"GiayKhen_{st.session_state.student_name}.html", mime="text/html")
 
             st.markdown(f'<div class="card" style="text-align:center;"><h2>KẾT QUẢ: {st.session_state.final_score} ĐIỂM</h2><h4>Hạng: {st.session_state.current_rank}</h4></div>', unsafe_allow_html=True)
             if st.button("Làm bài tiếp"): st.session_state.is_submitted = False; st.session_state.is_accepted = False; st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
-
