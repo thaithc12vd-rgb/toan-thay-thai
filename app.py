@@ -53,40 +53,68 @@ st.markdown(f"""
     .hide-btn button {{ background-color: #6c757d !important; color: white !important; }}
     .download-btn button {{ background-color: #28a745 !important; color: white !important; font-weight: bold !important; margin-bottom: 10px; }}
 
-    /* --- GIẤY KHEN CĂN GIỮA & HỌA TIẾT --- */
+    /* --- GIẤY KHEN VĂN HÓA VIỆT NAM (CHỈ THÊM HỌA TIẾT) --- */
     .certificate-container {{
         background: #fff; 
-        border: 15px double #b8860b; 
+        border: 20px solid transparent;
+        border-image: url('https://i.imgur.com/8Qj8j3D.png') 30 round; /* Viền họa tiết sen/vàng đồng cổ điển */
         padding: 50px; 
         width: 100%; max-width: 850px; 
         margin: 20px auto; 
         position: relative; 
-        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-        /* Họa tiết nhẹ chìm */
+        box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+        
+        /* Họa tiết nền chìm (Trống đồng + Sen) */
         background-image: 
-            linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)),
-            url('https://www.transparenttextures.com/patterns/cream-paper.png');
+            linear-gradient(rgba(255, 253, 240, 0.93), rgba(255, 253, 240, 0.93)),
+            url('https://www.transparenttextures.com/patterns/handmade-paper.png'),
+            url('https://i.imgur.com/mO7xP4F.png'); /* Họa tiết Trống đồng chìm */
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover, auto, 70%;
+
         display: flex;
         flex-direction: column;
-        align-items: center; /* Căn giữa tất cả theo chiều ngang */
-        text-align: center;  /* Căn giữa chữ */
+        align-items: center; 
+        text-align: center;  
     }}
-    .cert-header {{ font-family: 'Times New Roman', serif; color: #b8860b; font-size: 42px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }}
-    .cert-sub {{ font-size: 20px; font-style: italic; color: #666; margin-bottom: 25px; }}
-    .cert-award-text {{ font-size: 22px; color: #333; margin-bottom: 10px; }}
+    /* Thêm Quốc huy chìm ở giữa */
+    .certificate-container::before {{
+        content: "";
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 300px; height: 300px;
+        background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Emblem_of_Vietnam.svg/1024px-Emblem_of_Vietnam.svg.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        opacity: 0.04; /* Rất mờ */
+        z-index: 0;
+    }}
+
+    .cert-content-wrapper {{ position: relative; z-index: 1; width: 100%; }}
+
+    .cert-header {{ font-family: 'Times New Roman', serif; color: #a57c00; font-size: 45px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }}
+    .cert-sub {{ font-size: 20px; font-style: italic; color: #555; margin-bottom: 25px; }}
+    .cert-award-text {{ font-size: 22px; color: #333; margin-bottom: 10px; font-family: 'Arial', sans-serif; }}
+    
     .cert-student-name {{ 
-        font-family: 'Georgia', serif; font-size: 50px; font-weight: bold; color: #004F98; 
-        border-bottom: 3px double #b8860b; 
-        padding: 5px 50px; margin: 15px 0; 
+        font-family: 'Georgia', serif; font-size: 55px; font-weight: bold; color: #004F98; 
+        border-bottom: 3px double #a57c00; 
+        padding: 5px 60px; margin: 15px 0; 
+        text-shadow: 1px 2px 3px rgba(0,0,0,0.15);
     }}
-    .cert-medal-box {{ font-size: 80px; margin: 10px 0; }}
-    .cert-rank {{ font-size: 26px; font-weight: bold; color: #d32f2f; }}
+    
+    .cert-medal-box {{ font-size: 90px; margin: 15px 0; filter: drop-shadow(3px 5px 7px rgba(0,0,0,0.25)); }}
+    .cert-rank {{ font-size: 28px; font-weight: bold; color: #d32f2f; text-transform: uppercase; letter-spacing: 1px; }}
+    
     .cert-footer {{ 
-        margin-top: 40px; 
+        margin-top: 45px; 
         width: 100%;
         font-size: 18px; color: #444; 
-        border-top: 1px solid #ddd; 
-        padding-top: 20px; 
+        border-top: 2px solid #e0e0e0; 
+        padding-top: 25px; 
+        font-family: 'Arial', sans-serif;
     }}
 </style>
 <div class="sticky-header">
@@ -240,7 +268,7 @@ else:
                     cur_prof = doc_file(FILE_PROF)
                     sk = f"{st.session_state.student_name}_{ma_de_url}"
                     cur_prof[sk]["top10_count"] = cur_prof[sk].get("top10_count", 0) + 1
-                    ghi_file(FILE_PROF, cur_prof)
+                    ghi_file(FILE_PROF, current_profiles)
                 st.session_state.final_score = diem; st.session_state.is_submitted = True; st.balloons(); st.rerun()
 
         if st.session_state.is_submitted:
@@ -250,18 +278,21 @@ else:
                 medal = "💎" if st.session_state.current_rank == 1 else ("🥇" if st.session_state.current_rank == 2 else ("🥈" if st.session_state.current_rank == 3 else "🥉"))
                 title_medal = "KIM CƯƠNG" if st.session_state.current_rank == 1 else ("VÀNG" if st.session_state.current_rank == 2 else ("BẠC" if st.session_state.current_rank == 3 else "ĐỒNG"))
                 
-                # HTML Giấy khen CĂN GIỮA & HỌA TIẾT
+                # HTML Giấy khen CĂN GIỮA & HỌA TIẾT VIỆT NAM
                 cert_html = f"""
                 <div class="certificate-container">
-                    <div class="cert-header">GIẤY KHEN DANH DỰ</div>
-                    <div class="cert-sub">Phần thưởng cho sự nỗ lực và trí tuệ</div>
-                    <div class="cert-award-text">Thầy Thái nhiệt liệt biểu dương em:</div>
-                    <div class="cert-student-name">{st.session_state.student_name.upper()}</div>
-                    <div class="cert-medal-box">{medal}</div>
-                    <div class="cert-rank">Đã xuất sắc đạt hạng {st.session_state.current_rank} - DANH HIỆU {title_medal}</div>
-                    <div class="cert-footer">
-                        Đề kiểm tra: {ma_de_url} | Ngày cấp: {datetime.now().strftime('%d/%m/%Y')}<br>
-                        <strong>Chúc em luôn học tập tốt và gặt hái nhiều thành công!</strong>
+                    <div class="cert-content-wrapper">
+                        <div class="cert-header">GIẤY KHEN DANH DỰ</div>
+                        <div class="cert-sub">Sở Giáo dục & Đào tạo Thầy Thái TP. Toán Học</div>
+                        <div class="cert-award-text">Nhiệt liệt biểu dương và khen tặng em:</div>
+                        <div class="cert-student-name">{st.session_state.student_name.upper()}</div>
+                        <div class="cert-medal-box">{medal}</div>
+                        <div class="cert-rank">Đã xuất sắc đạt hạng {st.session_state.current_rank} - DANH HIỆU {title_medal}</div>
+                        <div class="cert-footer">
+                            Mã đề kiểm tra: {ma_de_url}<br>
+                            Hệ thống ghi nhận lúc: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}<br>
+                            <strong>Chúc em luôn chăm ngoan, học giỏi và giữ vững thành tích!</strong>
+                        </div>
                     </div>
                 </div>
                 """
