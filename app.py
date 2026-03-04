@@ -11,12 +11,12 @@ from datetime import datetime, timedelta
 # --- 1. CẤU HÌNH GIAO DIỆN ---
 st.set_page_config(page_title="Toan Lop 3 - Thay Thai", layout="wide")
 
-# Hàm ghi file đảm bảo dữ liệu được lưu xuống ổ đĩa để máy khách thấy được
+# Hàm ghi file đảm bảo dữ liệu được lưu xuống ổ đĩa vĩnh viễn
 def ghi_file(path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# Hàm đọc file cập nhật dữ liệu mới nhất từ ổ đĩa
+# Hàm đọc file để nạp dữ liệu cho mọi máy tính truy cập
 def doc_file(path):
     if os.path.exists(path):
         try:
@@ -27,7 +27,7 @@ def doc_file(path):
 
 FILE_DB, FILE_RES, FILE_PROF = "quiz_lib.json", "student_results.json", "student_profiles.json"
 
-# NẠP DỮ LIỆU TỪ FILE NGAY KHI MỞ TRANG (Đảm bảo máy khách thấy bài tập)
+# PHỤC HỒI DỮ LIỆU: Đọc thư viện đề ngay lập tức để link học sinh luôn có bài
 library = doc_file(FILE_DB)
 profiles = doc_file(FILE_PROF)
 
@@ -73,39 +73,22 @@ st.markdown(f"""
     .hide-btn button {{ background-color: #6c757d !important; color: white !important; }}
     .download-btn button {{ background-color: #28a745 !important; color: white !important; font-weight: bold !important; margin-bottom: 10px; }}
 
+    /* --- GIẤY KHEN CHUYÊN NGHIỆP CĂN GIỮA --- */
     .certificate-container {{
-        background: #fff; 
-        border: 15px double #b8860b; 
-        padding: 50px; 
-        width: 100%; max-width: 850px; 
-        margin: 20px auto; 
-        position: relative; 
-        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-        background-image: 
-            linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)),
-            url('https://www.transparenttextures.com/patterns/cream-paper.png');
-        display: flex;
-        flex-direction: column;
-        align-items: center; 
-        text-align: center; 
+        background: #fff; border: 20px solid transparent;
+        border-image: url('https://i.imgur.com/8Qj8j3D.png') 30 round;
+        padding: 50px; width: 100%; max-width: 850px; margin: 20px auto; position: relative; box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+        background-image: linear-gradient(rgba(255, 253, 240, 0.93), rgba(255, 253, 240, 0.93)), url('https://i.imgur.com/mO7xP4F.png'); 
+        background-position: center; background-repeat: no-repeat; background-size: cover, 70%;
+        display: flex; flex-direction: column; align-items: center; text-align: center;  
     }}
-    .cert-header {{ font-family: 'Times New Roman', serif; color: #b8860b; font-size: 42px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }}
-    .cert-sub {{ font-size: 20px; font-style: italic; color: #666; margin-bottom: 25px; }}
+    .cert-header {{ font-family: 'Times New Roman', serif; color: #a57c00; font-size: 45px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }}
+    .cert-sub {{ font-size: 20px; font-style: italic; color: #555; margin-bottom: 25px; }}
     .cert-award-text {{ font-size: 22px; color: #333; margin-bottom: 10px; }}
-    .cert-student-name {{ 
-        font-family: 'Georgia', serif; font-size: 50px; font-weight: bold; color: #004F98; 
-        border-bottom: 3px double #b8860b; 
-        padding: 5px 50px; margin: 15px 0; 
-    }}
-    .cert-medal-box {{ font-size: 80px; margin: 10px 0; }}
-    .cert-rank {{ font-size: 26px; font-weight: bold; color: #d32f2f; }}
-    .cert-footer {{ 
-        margin-top: 40px; 
-        width: 100%;
-        font-size: 18px; color: #444; 
-        border-top: 1px solid #ddd; 
-        padding-top: 20px; 
-    }}
+    .cert-student-name {{ font-family: 'Georgia', serif; font-size: 55px; font-weight: bold; color: #004F98; border-bottom: 3px double #a57c00; padding: 5px 60px; margin: 15px 0; }}
+    .cert-medal-box {{ font-size: 90px; margin: 15px 0; }}
+    .cert-rank {{ font-size: 28px; font-weight: bold; color: #d32f2f; text-transform: uppercase; }}
+    .cert-footer {{ margin-top: 45px; width: 100%; font-size: 18px; color: #444; border-top: 2px solid #e0e0e0; padding-top: 25px; }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -139,21 +122,18 @@ if role == "teacher":
             towrap = io.BytesIO()
             template_df.to_csv(towrap, index=False, encoding='utf-8-sig')
             st.markdown('<div class="download-btn">', unsafe_allow_html=True)
-            st.download_button(label="📥 TẢI FILE MẪU (10 CÂU)", data=towrap.getvalue(), file_name="mau_de_10_cau.csv", mime="text/csv")
+            st.download_button(label="📥 TẢI FILE MẪU", data=towrap.getvalue(), file_name="mau_de_10_cau.csv", mime="text/csv")
             st.markdown('</div>', unsafe_allow_html=True)
-
             up_f = st.file_uploader("📤 TẢI CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
             if up_f:
                 df = pd.read_csv(io.BytesIO(up_f.getvalue()), encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
                 st.session_state.data_step3 = [{"q": str(r.iloc[1]), "a": str(r.iloc[2])} for _, r in df.iterrows()]
                 st.session_state.ver_key += 1; st.rerun()
-            
             st.markdown('<div class="live-btn">', unsafe_allow_html=True)
             if st.button("🔴 HIỆN LIVE"): st.session_state.view_live = True
             st.markdown('</div><div class="hide-btn">', unsafe_allow_html=True)
             if st.button("⚪ ẨN LIVE"): st.session_state.view_live = False
             st.markdown('</div>', unsafe_allow_html=True)
-            
             m_de_cnt = st.text_input("Mã đề đếm tổng:", key="cnt_de").strip()
             if m_de_cnt:
                 total_em = sum(1 for k in profiles.keys() if m_de_cnt in k)
@@ -171,7 +151,6 @@ if role == "teacher":
                         df_l.index += 1
                         st.table(df_l.head(100).rename(columns={'student':'Học sinh','score':'Điểm','time':'Thời gian làm'}))
                 st.markdown('</div>', unsafe_allow_html=True)
-            
             st.markdown('<div class="card">', unsafe_allow_html=True)
             list_de = list(library.keys())
             de_chon = st.selectbox("📂 Chọn đề cũ:", options=["-- Tạo mới --"] + list_de)
@@ -184,8 +163,7 @@ if role == "teacher":
             if st.button("🚀 LƯU ĐỀ VÀO KHO"):
                 if m_de:
                     library[m_de] = [{"q": st.session_state.get(f"q_{st.session_state.ver_key}_{i}", ""), "a": st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")} for i in range(1, 11)]
-                    ghi_file(FILE_DB, library); st.success("Đã lưu vào kho!"); st.rerun()
-            
+                    ghi_file(FILE_DB, library); st.success("Đã lưu vĩnh viễn!"); st.rerun()
             for i in range(1, 11):
                 vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
                 va = st.session_state.data_step3[i-1]["a"] if i <= len(st.session_state.data_step3) else ""
@@ -193,7 +171,7 @@ if role == "teacher":
                 st.text_input(f"Đáp án {i}", value=va, key=f"a_{st.session_state.ver_key}_{i}")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # PHẦN HỌC SINH (Máy khách sẽ đọc library từ file database)
+    # PHẦN HỌC SINH: library đã được nạp từ đầu nên máy khách luôn có bài
     if ma_de_url in library:
         st.markdown(f'<div class="move-up-container"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
         if not st.session_state.is_accepted:
@@ -206,8 +184,7 @@ else:
                         sk = f"{name_in}_{ma_de_url}"
                         cur_prof = doc_file(FILE_PROF)
                         prof = cur_prof.get(sk, {"attempts": 0, "top10_count": 0})
-                        if prof["attempts"] >= 20:
-                            st.error("Hết lượt (Tối đa 20 lần)!")
+                        if prof["attempts"] >= 20: st.error("Hết lượt!")
                         else:
                             prof["attempts"] += 1
                             cur_prof[sk] = prof
@@ -215,59 +192,38 @@ else:
                             st.session_state.student_name = name_in; st.session_state.is_accepted = True
                             st.session_state.start_time = time.time(); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-        
         if st.session_state.is_accepted and not st.session_state.is_submitted:
             ans_dict = {}
             for idx, item in enumerate(library[ma_de_url], 1):
                 if item["q"]:
                     st.markdown(f'<div class="card"><b>Câu {idx}:</b> {item["q"]}</div>', unsafe_allow_html=True)
-                    ans_dict[f"Câu {idx}"] = st.text_input(f"Nhập kết quả {idx}", key=f"ans_{idx}", label_visibility="collapsed", autocomplete="off")
-            
+                    ans_dict[f"Câu {idx}"] = st.text_input(f"Nhập kết quả {idx}", key=f"ans_{idx}", label_visibility="collapsed")
             if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
-                dung = 0
-                q_list = [x for x in library[ma_de_url] if x["q"]]
+                dung = 0; q_list = [x for x in library[ma_de_url] if x["q"]]
                 for idx, it in enumerate(library[ma_de_url], 1):
-                    if it["q"] and str(ans_dict.get(f"Câu {idx}", "")).strip().lower() == str(it["a"]).strip().lower():
-                        dung += 1
+                    if it["q"] and str(ans_dict.get(f"Câu {idx}", "")).strip().lower() == str(it["a"]).strip().lower(): dung += 1
                 diem = int((dung / len(q_list)) * 10) if q_list else 0
                 dur_sec = int(time.time() - st.session_state.start_time)
-                phut, giay = divmod(dur_sec, 60)
-                tg_lam = f"{phut} phút {giay} giây"
                 r_all = doc_file(FILE_RES); t_now = datetime.now()
                 if ma_de_url not in r_all: r_all[ma_de_url] = []
-                r_all[ma_de_url].append({"full_time": t_now.strftime("%Y-%m-%d %H:%M:%S"), "time": tg_lam, "duration": dur_sec, "student": st.session_state.student_name, "score": diem})
+                r_all[ma_de_url].append({"full_time": t_now.strftime("%Y-%m-%d %H:%M:%S"), "time": f"{dur_sec//60}p {dur_sec%60}s", "duration": dur_sec, "student": st.session_state.student_name, "score": diem})
                 ghi_file(FILE_RES, r_all)
                 dt = pd.DataFrame(r_all[ma_de_url]).sort_values(by=['score', 'duration'], ascending=[False, True]).reset_index(drop=True)
                 st.session_state.current_rank = dt[dt['student'] == st.session_state.student_name].index[0] + 1
                 if st.session_state.current_rank <= 10:
-                    cur_prof = doc_file(FILE_PROF)
-                    sk = f"{st.session_state.student_name}_{ma_de_url}"
-                    cur_prof[sk]["top10_count"] = cur_prof[sk].get("top10_count", 0) + 1
+                    cur_prof = doc_file(FILE_PROF); sk = f"{st.session_state.student_name}_{ma_de_url}"
+                    cur_prof[sk]["top10_count"] = cur_prof.get(sk, {}).get("top10_count", 0) + 1
                     ghi_file(FILE_PROF, cur_prof)
                 st.session_state.final_score = diem; st.session_state.is_submitted = True; st.balloons(); st.rerun()
 
         if st.session_state.is_submitted:
-            st.markdown(f'<div class="card result-card"><h2>KẾT QUẢ: {st.session_state.final_score} ĐIỂM</h2><div class="rank-text">HẠNG CỦA EM: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card result-card"><h2>KẾT QUẢ: {st.session_state.final_score} ĐIỂM</h2><div class="rank-text">HẠNG: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
             if st.session_state.current_rank <= 10:
                 medal = "💎" if st.session_state.current_rank == 1 else ("🥇" if st.session_state.current_rank == 2 else ("🥈" if st.session_state.current_rank == 3 else "🥉"))
                 title_medal = "KIM CƯƠNG" if st.session_state.current_rank == 1 else ("VÀNG" if st.session_state.current_rank == 2 else ("BẠC" if st.session_state.current_rank == 3 else "ĐỒNG"))
-                cert_html = f"""
-                <div class="certificate-container">
-                    <div class="cert-header">GIẤY KHEN DANH DỰ</div>
-                    <div class="cert-sub">Phần thưởng cho sự nỗ lực và trí tuệ</div>
-                    <div class="cert-award-text">Thầy Thái nhiệt liệt biểu dương em:</div>
-                    <div class="cert-student-name">{st.session_state.student_name.upper()}</div>
-                    <div class="cert-medal-box">{medal}</div>
-                    <div class="cert-rank">Đã xuất sắc đạt hạng {st.session_state.current_rank} - DANH HIỆU {title_medal}</div>
-                    <div class="cert-footer">
-                        Đề kiểm tra: {ma_de_url} | Ngày cấp: {datetime.now().strftime('%d/%m/%Y')}<br>
-                        <strong>Chúc em luôn học tập tốt và gặt hái nhiều thành công!</strong>
-                    </div>
-                </div>
-                """
+                cert_html = f"""<div class="certificate-container"><div class="cert-header">GIẤY KHEN DANH DỰ</div><div class="cert-sub">TP. Toán Học Thầy Thái</div><div class="cert-award-text">Khen tặng em:</div><div class="cert-student-name">{st.session_state.student_name.upper()}</div><div class="cert-medal-box">{medal}</div><div class="cert-rank">Đạt hạng {st.session_state.current_rank} - {title_medal}</div><div class="cert-footer">Ngày cấp: {datetime.now().strftime('%d/%m/%Y')}</div></div>"""
                 st.markdown(cert_html, unsafe_allow_html=True)
-                st.download_button(label="📥 TẢI GIẤY KHEN", data=cert_html, file_name=f"GiayKhen.html", mime="text/html")
-
+                st.download_button(label="📥 TẢI GIẤY KHEN", data=cert_html, file_name=f"giay_khen.html", mime="text/html")
             st.markdown('<div class="card">', unsafe_allow_html=True)
             all_dt = doc_file(FILE_RES).get(ma_de_url, [])
             if all_dt:
@@ -277,6 +233,5 @@ else:
                 df['Top 10'] = df['Hạng'].apply(lambda x: "💎 Kim Cương" if x==1 else ("🥇 Vàng" if x==2 else ("🥈 Bạc" if x==3 else ("🥉 Đồng" if x<=10 else ""))))
                 df['Số lần đạt Top 10'] = df['student'].apply(lambda x: doc_file(FILE_PROF).get(f"{x}_{ma_de_url}", {}).get("top10_count", 0))
                 st.table(df.head(100)[['Hạng', 'Top 10', 'student', 'score', 'time', 'Số lần đạt Top 10']].rename(columns={'student':'Học sinh','score':'Điểm','time':'Thời gian làm'}))
-            if st.button("Làm bài tiếp"):
-                st.session_state.is_submitted = False; st.rerun()
+            if st.button("Làm bài tiếp"): st.session_state.is_submitted = False; st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
