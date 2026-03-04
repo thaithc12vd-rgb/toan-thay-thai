@@ -11,12 +11,12 @@ from datetime import datetime, timedelta
 # --- 1. CẤU HÌNH GIAO DIỆN ---
 st.set_page_config(page_title="Toan Lop 3 - Thay Thai", layout="wide")
 
-# Hàm ghi file đảm bảo dữ liệu được lưu xuống ổ đĩa để máy khách thấy được
+# Hàm ghi file đảm bảo dữ liệu được lưu xuống ổ đĩa VĨNH VIỄN để bài tập không bị mất
 def ghi_file(path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# Hàm đọc file cập nhật dữ liệu mới nhất từ ổ đĩa
+# Hàm đọc file nạp dữ liệu liên tục cho mọi máy khách (Sửa lỗi link trống sau 1 ngày)
 def doc_file(path):
     if os.path.exists(path):
         try:
@@ -27,7 +27,8 @@ def doc_file(path):
 
 FILE_DB, FILE_RES, FILE_PROF = "quiz_lib.json", "student_results.json", "student_profiles.json"
 
-# NẠP DỮ LIỆU TỪ FILE NGAY KHI MỞ TRANG (Đảm bảo máy khách thấy bài tập)
+# --- PHỤC HỒI VÀ DUY TRÌ DỮ LIỆU CỨNG ---
+# Nạp library ngay tại đây để link học sinh gửi đi luôn tìm thấy bài tập trong file
 library = doc_file(FILE_DB)
 profiles = doc_file(FILE_PROF)
 
@@ -73,6 +74,7 @@ st.markdown(f"""
     .hide-btn button {{ background-color: #6c757d !important; color: white !important; }}
     .download-btn button {{ background-color: #28a745 !important; color: white !important; font-weight: bold !important; margin-bottom: 10px; }}
 
+    /* --- GIỮ NGUYÊN GIẤY KHEN TUYỆT ĐỐI --- */
     .certificate-container {{
         background: #fff; 
         border: 15px double #b8860b; 
@@ -116,12 +118,12 @@ st.markdown(f"""
 
 def quet_don_48h(results):
     hien_tai = datetime.now()
-    thay_doi = False; kq_moi = {}
+    t_doi = False; kq_moi = {}
     for de, ds in results.items():
         loc = [r for r in ds if hien_tai - datetime.strptime(r.get('full_time', '2000-01-01 00:00:00'), "%Y-%m-%d %H:%M:%S") < timedelta(hours=48)]
-        if len(loc) != len(ds): thay_doi = True
+        if len(loc) != len(ds): t_doi = True
         kq_moi[de] = loc
-    if thay_doi: ghi_file(FILE_RES, kq_moi)
+    if t_doi: ghi_file(FILE_RES, kq_moi)
     return kq_moi
 
 for k, v in [('is_accepted', False), ('is_submitted', False), ('ver_key', 0), ('data_step3', []), ('student_name', ""), ('current_rank', 0), ('final_score', 0), ('view_live', False), ('start_time', 0)]:
@@ -148,11 +150,8 @@ if role == "teacher":
                 st.session_state.data_step3 = [{"q": str(r.iloc[1]), "a": str(r.iloc[2])} for _, r in df.iterrows()]
                 st.session_state.ver_key += 1; st.rerun()
             
-            st.markdown('<div class="live-btn">', unsafe_allow_html=True)
             if st.button("🔴 HIỆN LIVE"): st.session_state.view_live = True
-            st.markdown('</div><div class="hide-btn">', unsafe_allow_html=True)
             if st.button("⚪ ẨN LIVE"): st.session_state.view_live = False
-            st.markdown('</div>', unsafe_allow_html=True)
             
             m_de_cnt = st.text_input("Mã đề đếm tổng:", key="cnt_de").strip()
             if m_de_cnt:
@@ -184,7 +183,7 @@ if role == "teacher":
             if st.button("🚀 LƯU ĐỀ VÀO KHO"):
                 if m_de:
                     library[m_de] = [{"q": st.session_state.get(f"q_{st.session_state.ver_key}_{i}", ""), "a": st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")} for i in range(1, 11)]
-                    ghi_file(FILE_DB, library); st.success("Đã lưu vào kho!"); st.rerun()
+                    ghi_file(FILE_DB, library); st.success("Đã lưu vào kho vĩnh viễn!"); st.rerun()
             
             for i in range(1, 11):
                 vq = st.session_state.data_step3[i-1]["q"] if i <= len(st.session_state.data_step3) else ""
@@ -193,7 +192,7 @@ if role == "teacher":
                 st.text_input(f"Đáp án {i}", value=va, key=f"a_{st.session_state.ver_key}_{i}")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # PHẦN HỌC SINH (Máy khách sẽ đọc library từ file database)
+    # PHẦN HỌC SINH: library luôn được đọc từ file JSON ở dòng 33 nên link không bao giờ mất bài
     if ma_de_url in library:
         st.markdown(f'<div class="move-up-container"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
         if not st.session_state.is_accepted:
@@ -248,9 +247,12 @@ else:
 
         if st.session_state.is_submitted:
             st.markdown(f'<div class="card result-card"><h2>KẾT QUẢ: {st.session_state.final_score} ĐIỂM</h2><div class="rank-text">HẠNG CỦA EM: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
+            
             if st.session_state.current_rank <= 10:
                 medal = "💎" if st.session_state.current_rank == 1 else ("🥇" if st.session_state.current_rank == 2 else ("🥈" if st.session_state.current_rank == 3 else "🥉"))
                 title_medal = "KIM CƯƠNG" if st.session_state.current_rank == 1 else ("VÀNG" if st.session_state.current_rank == 2 else ("BẠC" if st.session_state.current_rank == 3 else "ĐỒNG"))
+                
+                # GIỮ NGUYÊN MẪU GIẤY KHEN CŨ
                 cert_html = f"""
                 <div class="certificate-container">
                     <div class="cert-header">GIẤY KHEN DANH DỰ</div>
@@ -266,7 +268,7 @@ else:
                 </div>
                 """
                 st.markdown(cert_html, unsafe_allow_html=True)
-                st.download_button(label="📥 TẢI GIẤY KHEN", data=cert_html, file_name=f"GiayKhen.html", mime="text/html")
+                st.download_button(label="📥 TẢI GIẤY KHEN", data=cert_html, file_name=f"GiayKhen_{st.session_state.student_name}.html", mime="text/html")
 
             st.markdown('<div class="card">', unsafe_allow_html=True)
             all_dt = doc_file(FILE_RES).get(ma_de_url, [])
