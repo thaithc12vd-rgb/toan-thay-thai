@@ -11,12 +11,12 @@ from datetime import datetime, timedelta
 # --- 1. CẤU HÌNH GIAO DIỆN ---
 st.set_page_config(page_title="Toan Lop 3 - Thay Thai", layout="wide")
 
-# Hàm ghi file đảm bảo dữ liệu được lưu xuống ổ đĩa VĨNH VIỄN để bài tập không bị mất
+# Hàm ghi file đảm bảo dữ liệu được lưu xuống ổ đĩa VĨNH VIỄN
 def ghi_file(path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# Hàm đọc file nạp dữ liệu liên tục cho mọi máy khách (Sửa lỗi link trống sau 1 ngày)
+# Hàm đọc file nạp dữ liệu liên tục cho mọi máy khách (Sửa lỗi mất bài sau vài ngày)
 def doc_file(path):
     if os.path.exists(path):
         try:
@@ -28,7 +28,7 @@ def doc_file(path):
 FILE_DB, FILE_RES, FILE_PROF = "quiz_lib.json", "student_results.json", "student_profiles.json"
 
 # --- PHỤC HỒI VÀ DUY TRÌ DỮ LIỆU CỨNG ---
-# Nạp library ngay tại đây để link học sinh gửi đi luôn tìm thấy bài tập trong file
+# Nạp dữ liệu từ file cứng ngay khi ứng dụng khởi chạy để học sinh luôn thấy bài tập
 library = doc_file(FILE_DB)
 profiles = doc_file(FILE_PROF)
 
@@ -74,40 +74,29 @@ st.markdown(f"""
     .hide-btn button {{ background-color: #6c757d !important; color: white !important; }}
     .download-btn button {{ background-color: #28a745 !important; color: white !important; font-weight: bold !important; margin-bottom: 10px; }}
 
-    /* --- GIỮ NGUYÊN GIẤY KHEN TUYỆT ĐỐI --- */
+    /* --- PHỤC HỒI GIẤY KHEN VỚI TRỐNG ĐỒNG CHÌM --- */
     .certificate-container {{
-        background: #fff; 
-        border: 15px double #b8860b; 
-        padding: 50px; 
-        width: 100%; max-width: 850px; 
-        margin: 20px auto; 
-        position: relative; 
-        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-        background-image: 
-            linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)),
-            url('https://www.transparenttextures.com/patterns/cream-paper.png');
-        display: flex;
-        flex-direction: column;
-        align-items: center; 
-        text-align: center; 
+        background: #fff; border: 20px solid transparent;
+        border-image: url('https://i.imgur.com/8Qj8j3D.png') 30 round;
+        padding: 50px; width: 100%; max-width: 850px; margin: 20px auto; position: relative; 
+        box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+        background-image: linear-gradient(rgba(255, 253, 240, 0.93), rgba(255, 253, 240, 0.93)), 
+            url('https://i.imgur.com/mO7xP4F.png'); /* Trống đồng chìm */
+        background-position: center; background-repeat: no-repeat; background-size: cover, 70%;
+        display: flex; flex-direction: column; align-items: center; text-align: center; 
     }}
-    .cert-header {{ font-family: 'Times New Roman', serif; color: #b8860b; font-size: 42px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }}
-    .cert-sub {{ font-size: 20px; font-style: italic; color: #666; margin-bottom: 25px; }}
-    .cert-award-text {{ font-size: 22px; color: #333; margin-bottom: 10px; }}
-    .cert-student-name {{ 
-        font-family: 'Georgia', serif; font-size: 50px; font-weight: bold; color: #004F98; 
-        border-bottom: 3px double #b8860b; 
-        padding: 5px 50px; margin: 15px 0; 
+    /* Quốc huy mờ */
+    .certificate-container::before {{
+        content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 300px; height: 300px; background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Emblem_of_Vietnam.svg/1024px-Emblem_of_Vietnam.svg.png');
+        background-size: contain; background-repeat: no-repeat; opacity: 0.04; z-index: 0;
     }}
-    .cert-medal-box {{ font-size: 80px; margin: 10px 0; }}
-    .cert-rank {{ font-size: 26px; font-weight: bold; color: #d32f2f; }}
-    .cert-footer {{ 
-        margin-top: 40px; 
-        width: 100%;
-        font-size: 18px; color: #444; 
-        border-top: 1px solid #ddd; 
-        padding-top: 20px; 
-    }}
+    .cert-header {{ font-family: 'Times New Roman', serif; color: #a57c00; font-size: 45px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; position: relative; z-index: 1; }}
+    .cert-sub {{ font-size: 20px; font-style: italic; color: #555; margin-bottom: 25px; position: relative; z-index: 1; }}
+    .cert-student-name {{ font-family: 'Georgia', serif; font-size: 55px; font-weight: bold; color: #004F98; border-bottom: 3px double #a57c00; padding: 5px 60px; margin: 15px 0; position: relative; z-index: 1; }}
+    .cert-medal-box {{ font-size: 90px; margin: 15px 0; position: relative; z-index: 1; }}
+    .cert-rank {{ font-size: 28px; font-weight: bold; color: #d32f2f; text-transform: uppercase; position: relative; z-index: 1; }}
+    .cert-footer {{ margin-top: 45px; width: 100%; font-size: 18px; color: #444; border-top: 2px solid #e0e0e0; padding-top: 25px; position: relative; z-index: 1; }}
 </style>
 <div class="sticky-header">
     <div class="main-title">{display_title}</div>
@@ -118,12 +107,12 @@ st.markdown(f"""
 
 def quet_don_48h(results):
     hien_tai = datetime.now()
-    t_doi = False; kq_moi = {}
+    thay_doi = False; kq_moi = {}
     for de, ds in results.items():
         loc = [r for r in ds if hien_tai - datetime.strptime(r.get('full_time', '2000-01-01 00:00:00'), "%Y-%m-%d %H:%M:%S") < timedelta(hours=48)]
-        if len(loc) != len(ds): t_doi = True
+        if len(loc) != len(ds): thay_doi = True
         kq_moi[de] = loc
-    if t_doi: ghi_file(FILE_RES, kq_moi)
+    if thay_doi: ghi_file(FILE_RES, kq_moi)
     return kq_moi
 
 for k, v in [('is_accepted', False), ('is_submitted', False), ('ver_key', 0), ('data_step3', []), ('student_name', ""), ('current_rank', 0), ('final_score', 0), ('view_live', False), ('start_time', 0)]:
@@ -141,9 +130,8 @@ if role == "teacher":
             towrap = io.BytesIO()
             template_df.to_csv(towrap, index=False, encoding='utf-8-sig')
             st.markdown('<div class="download-btn">', unsafe_allow_html=True)
-            st.download_button(label="📥 TẢI FILE MẪU (10 CÂU)", data=towrap.getvalue(), file_name="mau_de_10_cau.csv", mime="text/csv")
+            st.download_button(label="📥 TẢI FILE MẪU", data=towrap.getvalue(), file_name="mau_de_10_cau.csv", mime="text/csv")
             st.markdown('</div>', unsafe_allow_html=True)
-
             up_f = st.file_uploader("📤 TẢI CSV", type=["csv"], key=f"up_{st.session_state.ver_key}")
             if up_f:
                 df = pd.read_csv(io.BytesIO(up_f.getvalue()), encoding='utf-8-sig', encoding_errors='replace').dropna(how='all')
@@ -182,6 +170,7 @@ if role == "teacher":
                 st.code(f"https://toan-thay-thai-spgcbe5cuemztnk5wuadum.streamlit.app/?de={m_de}")
             if st.button("🚀 LƯU ĐỀ VÀO KHO"):
                 if m_de:
+                    # Ghi nhận 10 câu từ các ô nhập liệu vào thư viện
                     library[m_de] = [{"q": st.session_state.get(f"q_{st.session_state.ver_key}_{i}", ""), "a": st.session_state.get(f"a_{st.session_state.ver_key}_{i}", "")} for i in range(1, 11)]
                     ghi_file(FILE_DB, library); st.success("Đã lưu vào kho vĩnh viễn!"); st.rerun()
             
@@ -192,7 +181,7 @@ if role == "teacher":
                 st.text_input(f"Đáp án {i}", value=va, key=f"a_{st.session_state.ver_key}_{i}")
             st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # PHẦN HỌC SINH: library luôn được đọc từ file JSON ở dòng 33 nên link không bao giờ mất bài
+    # PHẦN HỌC SINH: library luôn được đọc từ file JSON ở dòng 31 nên link không bao giờ mất bài
     if ma_de_url in library:
         st.markdown(f'<div class="move-up-container"><div class="mini-quiz-box">ĐANG LÀM ĐỀ: {ma_de_url}</div></div>', unsafe_allow_html=True)
         if not st.session_state.is_accepted:
@@ -205,8 +194,7 @@ else:
                         sk = f"{name_in}_{ma_de_url}"
                         cur_prof = doc_file(FILE_PROF)
                         prof = cur_prof.get(sk, {"attempts": 0, "top10_count": 0})
-                        if prof["attempts"] >= 20:
-                            st.error("Hết lượt (Tối đa 20 lần)!")
+                        if prof["attempts"] >= 20: st.error("Hết lượt (Tối đa 20 lần)!")
                         else:
                             prof["attempts"] += 1
                             cur_prof[sk] = prof
@@ -220,51 +208,40 @@ else:
             for idx, item in enumerate(library[ma_de_url], 1):
                 if item["q"]:
                     st.markdown(f'<div class="card"><b>Câu {idx}:</b> {item["q"]}</div>', unsafe_allow_html=True)
-                    ans_dict[f"Câu {idx}"] = st.text_input(f"Nhập kết quả {idx}", key=f"ans_{idx}", label_visibility="collapsed", autocomplete="off")
+                    ans_dict[f"q{idx}"] = st.text_input(f"Kết quả {idx}", key=f"ans_{idx}", label_visibility="collapsed")
             
             if st.button("📝 NỘP BÀI", use_container_width=True, type="primary"):
-                dung = 0
-                q_list = [x for x in library[ma_de_url] if x["q"]]
+                dung = 0; q_list = [x for x in library[ma_de_url] if x["q"]]
                 for idx, it in enumerate(library[ma_de_url], 1):
-                    if it["q"] and str(ans_dict.get(f"Câu {idx}", "")).strip().lower() == str(it["a"]).strip().lower():
-                        dung += 1
+                    if it["q"] and str(ans_dict.get(f"q{idx}", "")).strip().lower() == str(it["a"]).strip().lower(): dung += 1
                 diem = int((dung / len(q_list)) * 10) if q_list else 0
                 dur_sec = int(time.time() - st.session_state.start_time)
-                phut, giay = divmod(dur_sec, 60)
-                tg_lam = f"{phut} phút {giay} giây"
                 r_all = doc_file(FILE_RES); t_now = datetime.now()
                 if ma_de_url not in r_all: r_all[ma_de_url] = []
-                r_all[ma_de_url].append({"full_time": t_now.strftime("%Y-%m-%d %H:%M:%S"), "time": tg_lam, "duration": dur_sec, "student": st.session_state.student_name, "score": diem})
+                r_all[ma_de_url].append({"full_time": t_now.strftime("%Y-%m-%d %H:%M:%S"), "time": f"{dur_sec//60}p {dur_sec%60}s", "duration": dur_sec, "student": st.session_state.student_name, "score": diem})
                 ghi_file(FILE_RES, r_all)
                 dt = pd.DataFrame(r_all[ma_de_url]).sort_values(by=['score', 'duration'], ascending=[False, True]).reset_index(drop=True)
                 st.session_state.current_rank = dt[dt['student'] == st.session_state.student_name].index[0] + 1
                 if st.session_state.current_rank <= 10:
-                    cur_prof = doc_file(FILE_PROF)
-                    sk = f"{st.session_state.student_name}_{ma_de_url}"
-                    cur_prof[sk]["top10_count"] = cur_prof[sk].get("top10_count", 0) + 1
+                    cur_prof = doc_file(FILE_PROF); sk = f"{st.session_state.student_name}_{ma_de_url}"
+                    cur_prof[sk]["top10_count"] = cur_prof.get(sk, {}).get("top10_count", 0) + 1
                     ghi_file(FILE_PROF, cur_prof)
                 st.session_state.final_score = diem; st.session_state.is_submitted = True; st.balloons(); st.rerun()
 
         if st.session_state.is_submitted:
-            st.markdown(f'<div class="card result-card"><h2>KẾT QUẢ: {st.session_state.final_score} ĐIỂM</h2><div class="rank-text">HẠNG CỦA EM: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
-            
+            st.markdown(f'<div class="card result-card"><h2>KẾT QUẢ: {st.session_state.final_score} ĐIỂM</h2><div class="rank-text">HẠNG: {st.session_state.current_rank}</div></div>', unsafe_allow_html=True)
             if st.session_state.current_rank <= 10:
                 medal = "💎" if st.session_state.current_rank == 1 else ("🥇" if st.session_state.current_rank == 2 else ("🥈" if st.session_state.current_rank == 3 else "🥉"))
                 title_medal = "KIM CƯƠNG" if st.session_state.current_rank == 1 else ("VÀNG" if st.session_state.current_rank == 2 else ("BẠC" if st.session_state.current_rank == 3 else "ĐỒNG"))
-                
-                # GIỮ NGUYÊN MẪU GIẤY KHEN CŨ
                 cert_html = f"""
                 <div class="certificate-container">
                     <div class="cert-header">GIẤY KHEN DANH DỰ</div>
-                    <div class="cert-sub">Phần thưởng cho sự nỗ lực và trí tuệ</div>
-                    <div class="cert-award-text">Thầy Thái nhiệt liệt biểu dương em:</div>
+                    <div class="cert-sub">Toán Học Thầy Thái</div>
+                    <div class="cert-award-text">Khen tặng em:</div>
                     <div class="cert-student-name">{st.session_state.student_name.upper()}</div>
                     <div class="cert-medal-box">{medal}</div>
-                    <div class="cert-rank">Đã xuất sắc đạt hạng {st.session_state.current_rank} - DANH HIỆU {title_medal}</div>
-                    <div class="cert-footer">
-                        Đề kiểm tra: {ma_de_url} | Ngày cấp: {datetime.now().strftime('%d/%m/%Y')}<br>
-                        <strong>Chúc em luôn học tập tốt và gặt hái nhiều thành công!</strong>
-                    </div>
+                    <div class="cert-rank">Đạt hạng {st.session_state.current_rank} - {title_medal}</div>
+                    <div class="cert-footer">Ngày cấp: {datetime.now().strftime('%d/%m/%Y')}</div>
                 </div>
                 """
                 st.markdown(cert_html, unsafe_allow_html=True)
